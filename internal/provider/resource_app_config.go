@@ -275,7 +275,7 @@ func (r *AppConfigResource) ImportState(ctx context.Context, req resource.Import
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 }
 
-// buildUpdateRequest creates an UpdateAppRequest from the model
+// buildUpdateRequest creates an UpdateAppRequest from the model.
 func (r *AppConfigResource) buildUpdateRequest(data *AppConfigResourceModel) *client.UpdateAppRequest {
 	updateReq := &client.UpdateAppRequest{}
 
@@ -328,7 +328,7 @@ func (r *AppConfigResource) buildUpdateRequest(data *AppConfigResourceModel) *cl
 	return updateReq
 }
 
-// updateModelFromApp updates the model with values from the API response
+// updateModelFromApp updates the model with values from the API response.
 func (r *AppConfigResource) updateModelFromApp(data *AppConfigResourceModel, app *client.App) {
 	// Only update fields that are returned by the API and not explicitly set
 	if app.Description != "" {
