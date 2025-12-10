@@ -1,0 +1,1 @@
+terraform import spiceai_app.example "12345"

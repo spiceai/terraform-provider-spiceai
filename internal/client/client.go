@@ -21,7 +21,7 @@ const (
 	DefaultOAuthEndpoint = "https://spice.ai/api/oauth/token"
 )
 
-// SpiceAIClient is the client for interacting with the Spice.ai API
+// SpiceAIClient is the client for interacting with the Spice.ai API.
 type SpiceAIClient struct {
 	httpClient    *http.Client
 	apiEndpoint   string
@@ -35,14 +35,14 @@ type SpiceAIClient struct {
 	tokenMutex  sync.RWMutex
 }
 
-// TokenResponse represents the OAuth token response
+// TokenResponse represents the OAuth token response.
 type TokenResponse struct {
 	AccessToken string `json:"access_token"`
 	TokenType   string `json:"token_type"`
 	ExpiresIn   int    `json:"expires_in"`
 }
 
-// NewSpiceAIClient creates a new Spice.ai API client
+// NewSpiceAIClient creates a new Spice.ai API client.
 func NewSpiceAIClient(clientID, clientSecret, apiEndpoint, oauthEndpoint string) *SpiceAIClient {
 	if apiEndpoint == "" {
 		apiEndpoint = DefaultAPIEndpoint
@@ -62,7 +62,7 @@ func NewSpiceAIClient(clientID, clientSecret, apiEndpoint, oauthEndpoint string)
 	}
 }
 
-// getAccessToken retrieves or refreshes the OAuth access token
+// getAccessToken retrieves or refreshes the OAuth access token.
 func (c *SpiceAIClient) getAccessToken(ctx context.Context) (string, error) {
 	c.tokenMutex.RLock()
 	if c.accessToken != "" && time.Now().Before(c.tokenExpiry) {
@@ -117,7 +117,7 @@ func (c *SpiceAIClient) getAccessToken(ctx context.Context) (string, error) {
 	return c.accessToken, nil
 }
 
-// doRequest performs an authenticated HTTP request
+// doRequest performs an authenticated HTTP request.
 func (c *SpiceAIClient) doRequest(ctx context.Context, method, path string, body interface{}) (*http.Response, error) {
 	token, err := c.getAccessToken(ctx)
 	if err != nil {
@@ -146,7 +146,7 @@ func (c *SpiceAIClient) doRequest(ctx context.Context, method, path string, body
 	return c.httpClient.Do(req)
 }
 
-// App represents a Spice.ai app
+// App represents a Spice.ai app.
 type App struct {
 	ID               int64      `json:"id"`
 	Name             string     `json:"name"`
@@ -159,7 +159,7 @@ type App struct {
 	Config           *AppConfig `json:"config,omitempty"`
 }
 
-// AppConfig represents the configuration of an app
+// AppConfig represents the configuration of an app.
 type AppConfig struct {
 	Spicepod           interface{} `json:"spicepod,omitempty"`
 	ImageTag           string      `json:"image_tag,omitempty"`
@@ -168,14 +168,14 @@ type AppConfig struct {
 	StorageClaimSizeGB float64     `json:"storage_claim_size_gb,omitempty"`
 }
 
-// CreateAppRequest represents the request to create an app
+// CreateAppRequest represents the request to create an app.
 type CreateAppRequest struct {
 	Name        string `json:"name"`
 	Description string `json:"description,omitempty"`
 	Visibility  string `json:"visibility,omitempty"`
 }
 
-// UpdateAppRequest represents the request to update an app
+// UpdateAppRequest represents the request to update an app.
 type UpdateAppRequest struct {
 	Description        string      `json:"description,omitempty"`
 	Visibility         string      `json:"visibility,omitempty"`
@@ -188,7 +188,7 @@ type UpdateAppRequest struct {
 	StorageClaimSizeGB *float64    `json:"storage_claim_size_gb,omitempty"`
 }
 
-// Deployment represents a Spice.ai deployment
+// Deployment represents a Spice.ai deployment.
 type Deployment struct {
 	ID             int64  `json:"id"`
 	Status         string `json:"status"`
@@ -203,7 +203,7 @@ type Deployment struct {
 	CreationSource string `json:"creation_source,omitempty"`
 }
 
-// CreateDeploymentRequest represents the request to create a deployment
+// CreateDeploymentRequest represents the request to create a deployment.
 type CreateDeploymentRequest struct {
 	ImageTag      string `json:"image_tag,omitempty"`
 	Replicas      *int   `json:"replicas,omitempty"`
@@ -213,17 +213,17 @@ type CreateDeploymentRequest struct {
 	Debug         *bool  `json:"debug,omitempty"`
 }
 
-// AppsResponse represents the response from listing apps
+// AppsResponse represents the response from listing apps.
 type AppsResponse struct {
 	Apps []App `json:"apps"`
 }
 
-// DeploymentsResponse represents the response from listing deployments
+// DeploymentsResponse represents the response from listing deployments.
 type DeploymentsResponse struct {
 	Deployments []Deployment `json:"deployments"`
 }
 
-// CreateApp creates a new app
+// CreateApp creates a new app.
 func (c *SpiceAIClient) CreateApp(ctx context.Context, req *CreateAppRequest) (*App, error) {
 	resp, err := c.doRequest(ctx, "POST", "/v1/apps", req)
 	if err != nil {
@@ -244,7 +244,7 @@ func (c *SpiceAIClient) CreateApp(ctx context.Context, req *CreateAppRequest) (*
 	return &app, nil
 }
 
-// GetApp retrieves an app by ID
+// GetApp retrieves an app by ID.
 func (c *SpiceAIClient) GetApp(ctx context.Context, appID int64) (*App, error) {
 	resp, err := c.doRequest(ctx, "GET", fmt.Sprintf("/v1/apps/%d", appID), nil)
 	if err != nil {
@@ -269,7 +269,7 @@ func (c *SpiceAIClient) GetApp(ctx context.Context, appID int64) (*App, error) {
 	return &app, nil
 }
 
-// UpdateApp updates an app
+// UpdateApp updates an app.
 func (c *SpiceAIClient) UpdateApp(ctx context.Context, appID int64, req *UpdateAppRequest) (*App, error) {
 	resp, err := c.doRequest(ctx, "PUT", fmt.Sprintf("/v1/apps/%d", appID), req)
 	if err != nil {
@@ -290,7 +290,7 @@ func (c *SpiceAIClient) UpdateApp(ctx context.Context, appID int64, req *UpdateA
 	return &app, nil
 }
 
-// DeleteApp deletes an app
+// DeleteApp deletes an app.
 func (c *SpiceAIClient) DeleteApp(ctx context.Context, appID int64) error {
 	resp, err := c.doRequest(ctx, "DELETE", fmt.Sprintf("/v1/apps/%d", appID), nil)
 	if err != nil {
@@ -306,7 +306,7 @@ func (c *SpiceAIClient) DeleteApp(ctx context.Context, appID int64) error {
 	return nil
 }
 
-// ListApps lists all apps
+// ListApps lists all apps.
 func (c *SpiceAIClient) ListApps(ctx context.Context) ([]App, error) {
 	resp, err := c.doRequest(ctx, "GET", "/v1/apps", nil)
 	if err != nil {
@@ -327,7 +327,7 @@ func (c *SpiceAIClient) ListApps(ctx context.Context) ([]App, error) {
 	return appsResp.Apps, nil
 }
 
-// CreateDeployment creates a new deployment for an app
+// CreateDeployment creates a new deployment for an app.
 func (c *SpiceAIClient) CreateDeployment(ctx context.Context, appID int64, req *CreateDeploymentRequest) (*Deployment, error) {
 	resp, err := c.doRequest(ctx, "POST", fmt.Sprintf("/v1/apps/%d/deployments", appID), req)
 	if err != nil {
@@ -348,7 +348,7 @@ func (c *SpiceAIClient) CreateDeployment(ctx context.Context, appID int64, req *
 	return &deployment, nil
 }
 
-// GetDeployment retrieves a specific deployment
+// GetDeployment retrieves a specific deployment.
 func (c *SpiceAIClient) GetDeployment(ctx context.Context, appID int64, deploymentID int64) (*Deployment, error) {
 	resp, err := c.doRequest(ctx, "GET", fmt.Sprintf("/v1/apps/%d/deployments?limit=100", appID), nil)
 	if err != nil {
@@ -375,7 +375,7 @@ func (c *SpiceAIClient) GetDeployment(ctx context.Context, appID int64, deployme
 	return nil, nil // Deployment not found
 }
 
-// ListDeployments lists deployments for an app
+// ListDeployments lists deployments for an app.
 func (c *SpiceAIClient) ListDeployments(ctx context.Context, appID int64, limit int, status string) ([]Deployment, error) {
 	path := fmt.Sprintf("/v1/apps/%d/deployments?limit=%d", appID, limit)
 	if status != "" {
