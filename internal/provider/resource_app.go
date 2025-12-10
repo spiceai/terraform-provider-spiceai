@@ -137,22 +137,26 @@ resource "spiceai_app" "example" {
 			"production_branch": schema.StringAttribute{
 				MarkdownDescription: "The production branch for the app. Used for git-based deployments.",
 				Optional:            true,
+				Computed:            true,
 			},
 
 			// Spicepod configuration
 			"spicepod": schema.StringAttribute{
 				MarkdownDescription: "The spicepod configuration as a YAML or JSON string. This defines the datasets, models, and other spicepod settings for the app.",
 				Optional:            true,
+				Computed:            true,
 			},
 
 			// Runtime configuration attributes
 			"image_tag": schema.StringAttribute{
 				MarkdownDescription: "The Spice.ai runtime image tag to use for deployments (e.g., `latest`, `v0.18.0`).",
 				Optional:            true,
+				Computed:            true,
 			},
 			"replicas": schema.Int64Attribute{
 				MarkdownDescription: "The number of replicas for the app. Must be between 1 and 10.",
 				Optional:            true,
+				Computed:            true,
 				Validators: []validator.Int64{
 					int64validator.Between(1, 10),
 				},
@@ -160,14 +164,17 @@ resource "spiceai_app" "example" {
 			"node_group": schema.StringAttribute{
 				MarkdownDescription: "The node group for the app deployment.",
 				Optional:            true,
+				Computed:            true,
 			},
 			"region": schema.StringAttribute{
 				MarkdownDescription: "The region for the app deployment.",
 				Optional:            true,
+				Computed:            true,
 			},
 			"storage_claim_size_gb": schema.Float64Attribute{
 				MarkdownDescription: "The storage claim size in GB for the app.",
 				Optional:            true,
+				Computed:            true,
 			},
 
 			// Read-only attributes
@@ -418,50 +425,81 @@ func (r *AppResource) mapAppToModel(data *AppResourceModel, app *client.App) {
 
 	if app.Description != "" {
 		data.Description = types.StringValue(app.Description)
+	} else {
+		data.Description = types.StringNull()
 	}
 
 	if app.Visibility != "" {
 		data.Visibility = types.StringValue(app.Visibility)
+	} else {
+		data.Visibility = types.StringNull()
 	}
 
 	if app.ProductionBranch != "" {
 		data.ProductionBranch = types.StringValue(app.ProductionBranch)
+	} else {
+		data.ProductionBranch = types.StringNull()
 	}
 
 	if app.Region != "" {
 		data.Region = types.StringValue(app.Region)
+	} else {
+		data.Region = types.StringNull()
 	}
 
 	if app.CreatedAt != "" {
 		data.CreatedAt = types.StringValue(app.CreatedAt)
+	} else {
+		data.CreatedAt = types.StringNull()
 	}
 
 	if app.APIKey != "" {
 		data.APIKey = types.StringValue(app.APIKey)
+	} else {
+		data.APIKey = types.StringNull()
 	}
 
 	// Map config fields if available
 	if app.Config != nil {
 		if app.Config.ImageTag != "" {
 			data.ImageTag = types.StringValue(app.Config.ImageTag)
+		} else {
+			data.ImageTag = types.StringNull()
 		}
 
 		if app.Config.Replicas > 0 {
 			data.Replicas = types.Int64Value(int64(app.Config.Replicas))
+		} else {
+			data.Replicas = types.Int64Null()
 		}
 
 		if app.Config.NodeGroup != "" {
 			data.NodeGroup = types.StringValue(app.Config.NodeGroup)
+		} else {
+			data.NodeGroup = types.StringNull()
 		}
 
 		if app.Config.StorageClaimSizeGB > 0 {
 			data.StorageClaimSizeGB = types.Float64Value(app.Config.StorageClaimSizeGB)
+		} else {
+			data.StorageClaimSizeGB = types.Float64Null()
 		}
 
 		if app.Config.Spicepod != nil {
 			if spicepodBytes, err := json.Marshal(app.Config.Spicepod); err == nil {
 				data.Spicepod = types.StringValue(string(spicepodBytes))
+			} else {
+				data.Spicepod = types.StringNull()
 			}
+		} else {
+			data.Spicepod = types.StringNull()
 		}
+	} else {
+		// No config returned, set all config fields to null
+		data.ImageTag = types.StringNull()
+		data.Replicas = types.Int64Null()
+		data.NodeGroup = types.StringNull()
+		data.StorageClaimSizeGB = types.Float64Null()
+		data.Spicepod = types.StringNull()
 	}
 }

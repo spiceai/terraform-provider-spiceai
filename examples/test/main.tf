@@ -23,28 +23,28 @@ provider "spiceai" {
 }
 
 # Create a test app with full configuration
-resource "spiceai_app" "test" {
-  name        = "terraform-test-app"
-  description = "Test app for Terraform provider validation"
-  visibility  = "private"
+# resource "spiceai_app" "test" {
+#   name        = "terraform-test-app-2"
+#   description = "Test app for Terraform provider validation, test"
+#   visibility  = "private"
 
-  # # Spicepod configuration
-  # spicepod = <<-YAML
-  #   version: v1beta1
-  #   kind: Spicepod
-  #   name: terraform-test-app
-  #   datasets:
-  #     - name: test_dataset
-  #       from: s3://spiceai-demo-datasets/taxi_trips/2024/
-  #       params:
-  #         file_format: parquet
-  # YAML
+#   # # Spicepod configuration
+#   # spicepod = <<-YAML
+#   #   version: v1beta1
+#   #   kind: Spicepod
+#   #   name: terraform-test-app
+#   #   datasets:
+#   #     - name: test_dataset
+#   #       from: s3://spiceai-demo-datasets/taxi_trips/2024/
+#   #       params:
+#   #         file_format: parquet
+#   # YAML
 
-  # # Runtime configuration
-  # image_tag         = "latest"
-  # replicas          = 1
-  # production_branch = "main"
-}
+#   # # Runtime configuration
+#   # image_tag         = "latest"
+#   # replicas          = 1
+#   # production_branch = "main"
+# }
 
 # # Create a deployment for the test app
 # resource "spiceai_deployment" "test" {
