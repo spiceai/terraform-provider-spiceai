@@ -159,6 +159,7 @@ type App struct {
 	Visibility       string     `json:"visibility,omitempty"`
 	CreatedAt        string     `json:"created_at,omitempty"`
 	Region           string     `json:"region,omitempty"`
+	ClusterID        string     `json:"cluster_id,omitempty"`
 	ProductionBranch string     `json:"production_branch,omitempty"`
 	APIKey           string     `json:"api_key,omitempty"`
 	Config           *AppConfig `json:"config,omitempty"`
@@ -169,6 +170,7 @@ type AppConfig struct {
 	Spicepod           interface{} `json:"spicepod,omitempty"`
 	ImageTag           string      `json:"image_tag,omitempty"`
 	Replicas           int         `json:"replicas,omitempty"`
+	Region             string      `json:"region,omitempty"`
 	NodeGroup          string      `json:"node_group,omitempty"`
 	StorageClaimSizeGB float64     `json:"storage_claim_size_gb,omitempty"`
 }
@@ -198,14 +200,17 @@ type Deployment struct {
 	ID             int64  `json:"id"`
 	Status         string `json:"status"`
 	CreatedAt      string `json:"created_at,omitempty"`
+	UpdatedAt      string `json:"updated_at,omitempty"`
 	StartedAt      string `json:"started_at,omitempty"`
 	FinishedAt     string `json:"finished_at,omitempty"`
 	ImageTag       string `json:"image_tag,omitempty"`
 	Replicas       int    `json:"replicas,omitempty"`
+	Branch         string `json:"branch,omitempty"`
 	CommitSHA      string `json:"commit_sha,omitempty"`
 	CommitMessage  string `json:"commit_message,omitempty"`
 	ErrorMessage   string `json:"error_message,omitempty"`
 	CreationSource string `json:"creation_source,omitempty"`
+	CreatedBy      int64  `json:"created_by,omitempty"`
 }
 
 // CreateDeploymentRequest represents the request to create a deployment.

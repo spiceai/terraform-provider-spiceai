@@ -38,19 +38,22 @@ type DeploymentResource struct {
 
 // DeploymentResourceModel describes the resource data model.
 type DeploymentResourceModel struct {
-	ID            types.String `tfsdk:"id"`
-	AppID         types.String `tfsdk:"app_id"`
-	ImageTag      types.String `tfsdk:"image_tag"`
-	Replicas      types.Int64  `tfsdk:"replicas"`
-	Branch        types.String `tfsdk:"branch"`
-	CommitSHA     types.String `tfsdk:"commit_sha"`
-	CommitMessage types.String `tfsdk:"commit_message"`
-	Debug         types.Bool   `tfsdk:"debug"`
-	Status        types.String `tfsdk:"status"`
-	CreatedAt     types.String `tfsdk:"created_at"`
-	StartedAt     types.String `tfsdk:"started_at"`
-	FinishedAt    types.String `tfsdk:"finished_at"`
-	ErrorMessage  types.String `tfsdk:"error_message"`
+	ID             types.String `tfsdk:"id"`
+	AppID          types.String `tfsdk:"app_id"`
+	ImageTag       types.String `tfsdk:"image_tag"`
+	Replicas       types.Int64  `tfsdk:"replicas"`
+	Branch         types.String `tfsdk:"branch"`
+	CommitSHA      types.String `tfsdk:"commit_sha"`
+	CommitMessage  types.String `tfsdk:"commit_message"`
+	Debug          types.Bool   `tfsdk:"debug"`
+	Status         types.String `tfsdk:"status"`
+	CreatedAt      types.String `tfsdk:"created_at"`
+	UpdatedAt      types.String `tfsdk:"updated_at"`
+	StartedAt      types.String `tfsdk:"started_at"`
+	FinishedAt     types.String `tfsdk:"finished_at"`
+	ErrorMessage   types.String `tfsdk:"error_message"`
+	CreationSource types.String `tfsdk:"creation_source"`
+	CreatedBy      types.Int64  `tfsdk:"created_by"`
 }
 
 func (r *DeploymentResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -164,6 +167,10 @@ resource "spiceai_deployment" "example" {
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
+			"updated_at": schema.StringAttribute{
+				Computed:            true,
+				MarkdownDescription: "The timestamp when the deployment was last updated.",
+			},
 			"started_at": schema.StringAttribute{
 				Computed:            true,
 				MarkdownDescription: "The timestamp when the deployment started running.",
@@ -175,6 +182,14 @@ resource "spiceai_deployment" "example" {
 			"error_message": schema.StringAttribute{
 				Computed:            true,
 				MarkdownDescription: "Error message if the deployment failed.",
+			},
+			"creation_source": schema.StringAttribute{
+				Computed:            true,
+				MarkdownDescription: "How the deployment was created (e.g., `api`, `dashboard`).",
+			},
+			"created_by": schema.Int64Attribute{
+				Computed:            true,
+				MarkdownDescription: "The user ID who created the deployment.",
 			},
 		},
 	}
@@ -339,22 +354,44 @@ func (r *DeploymentResource) mapDeploymentToModel(data *DeploymentResourceModel,
 
 	if deployment.ImageTag != "" {
 		data.ImageTag = types.StringValue(deployment.ImageTag)
+	} else {
+		data.ImageTag = types.StringNull()
 	}
 
 	if deployment.Replicas > 0 {
 		data.Replicas = types.Int64Value(int64(deployment.Replicas))
+	} else {
+		data.Replicas = types.Int64Null()
+	}
+
+	if deployment.Branch != "" {
+		data.Branch = types.StringValue(deployment.Branch)
+	} else {
+		data.Branch = types.StringNull()
 	}
 
 	if deployment.CreatedAt != "" {
 		data.CreatedAt = types.StringValue(deployment.CreatedAt)
+	} else {
+		data.CreatedAt = types.StringNull()
+	}
+
+	if deployment.UpdatedAt != "" {
+		data.UpdatedAt = types.StringValue(deployment.UpdatedAt)
+	} else {
+		data.UpdatedAt = types.StringNull()
 	}
 
 	if deployment.CommitSHA != "" {
 		data.CommitSHA = types.StringValue(deployment.CommitSHA)
+	} else {
+		data.CommitSHA = types.StringNull()
 	}
 
 	if deployment.CommitMessage != "" {
 		data.CommitMessage = types.StringValue(deployment.CommitMessage)
+	} else {
+		data.CommitMessage = types.StringNull()
 	}
 
 	if deployment.StartedAt != "" {
@@ -373,6 +410,18 @@ func (r *DeploymentResource) mapDeploymentToModel(data *DeploymentResourceModel,
 		data.ErrorMessage = types.StringValue(deployment.ErrorMessage)
 	} else {
 		data.ErrorMessage = types.StringNull()
+	}
+
+	if deployment.CreationSource != "" {
+		data.CreationSource = types.StringValue(deployment.CreationSource)
+	} else {
+		data.CreationSource = types.StringNull()
+	}
+
+	if deployment.CreatedBy > 0 {
+		data.CreatedBy = types.Int64Value(deployment.CreatedBy)
+	} else {
+		data.CreatedBy = types.Int64Null()
 	}
 }
 

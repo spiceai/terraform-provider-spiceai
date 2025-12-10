@@ -179,7 +179,13 @@
             "name": "status",
             "schema": {
               "type": "string",
-              "enum": ["queued", "deploying", "running", "failed", "stopped"]
+              "enum": [
+                "queued",
+                "in_progress",
+                "succeeded",
+                "failed",
+                "created"
+              ]
             },
             "description": "Filter by deployment status"
           }
@@ -204,10 +210,10 @@
                             "type": "string",
                             "enum": [
                               "queued",
-                              "deploying",
-                              "running",
+                              "in_progress",
+                              "succeeded",
                               "failed",
-                              "stopped"
+                              "created"
                             ]
                           },
                           "created_at": {

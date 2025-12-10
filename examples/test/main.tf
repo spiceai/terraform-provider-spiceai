@@ -20,28 +20,28 @@ provider "spiceai" {
 }
 
 # Create a test app with full configuration
-# resource "spiceai_app" "test" {
-#   name        = "terraform-test-app-2"
-#   description = "Test app for Terraform provider validation, test update 1"
-#   visibility  = "private"
+resource "spiceai_app" "test" {
+  name        = "terraform-test-app-2"
+  description = "Test app for Terraform provider validation, test update 1"
+  visibility  = "private"
 
-#   # # Spicepod configuration
-#   # spicepod = <<-YAML
-#   #   version: v1beta1
-#   #   kind: Spicepod
-#   #   name: terraform-test-app
-#   #   datasets:
-#   #     - name: test_dataset
-#   #       from: s3://spiceai-demo-datasets/taxi_trips/2024/
-#   #       params:
-#   #         file_format: parquet
-#   # YAML
+  # # Spicepod configuration
+  # spicepod = <<-YAML
+  #   version: v1beta1
+  #   kind: Spicepod
+  #   name: terraform-test-app
+  #   datasets:
+  #     - name: test_dataset
+  #       from: s3://spiceai-demo-datasets/taxi_trips/2024/
+  #       params:
+  #         file_format: parquet
+  # YAML
 
-#   # # Runtime configuration
-#   # image_tag         = "latest"
-#   # replicas          = 1
-#   # production_branch = "main"
-# }
+  # # Runtime configuration
+  # image_tag         = "latest"
+  # replicas          = 1
+  # production_branch = "main"
+}
 
 # # Create a deployment for the test app
 # resource "spiceai_deployment" "test" {
@@ -59,22 +59,32 @@ provider "spiceai" {
 # # Data source: List all apps
 # data "spiceai_apps" "all" {}
 
-# # Outputs for verification
-# output "app_id" {
-#   description = "The ID of the test app"
-#   value       = spiceai_app.test.id
-# }
+# Outputs for verification
+output "app_id" {
+  description = "The ID of the test app"
+  value       = spiceai_app.test.id
+}
 
-# output "app_name" {
-#   description = "The name of the test app"
-#   value       = spiceai_app.test.name
-# }
+output "app_name" {
+  description = "The name of the test app"
+  value       = spiceai_app.test.name
+}
 
-# output "app_api_key" {
-#   description = "The API key for the test app"
-#   value       = spiceai_app.test.api_key
-#   sensitive   = true
-# }
+output "app_region" {
+  description = "The region of the test app"
+  value       = spiceai_app.test.region
+}
+
+output "app_cluster_id" {
+  description = "The cluster ID of the test app"
+  value       = spiceai_app.test.cluster_id
+}
+
+output "app_api_key" {
+  description = "The API key for the test app"
+  value       = spiceai_app.test.api_key
+  sensitive   = true
+}
 
 # output "deployment_id" {
 #   description = "The ID of the deployment"

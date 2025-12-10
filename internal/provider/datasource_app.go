@@ -52,6 +52,7 @@ type AppDataSourceModel struct {
 
 	// Read-only attributes
 	CreatedAt types.String `tfsdk:"created_at"`
+	ClusterID types.String `tfsdk:"cluster_id"`
 	APIKey    types.String `tfsdk:"api_key"`
 }
 
@@ -119,6 +120,10 @@ func (d *AppDataSource) Schema(ctx context.Context, req datasource.SchemaRequest
 			// Read-only attributes
 			"created_at": schema.StringAttribute{
 				MarkdownDescription: "The timestamp when the app was created.",
+				Computed:            true,
+			},
+			"cluster_id": schema.StringAttribute{
+				MarkdownDescription: "The Kubernetes cluster identifier where the app is deployed.",
 				Computed:            true,
 			},
 			"api_key": schema.StringAttribute{
@@ -190,9 +195,18 @@ func (d *AppDataSource) mapAppToModel(data *AppDataSourceModel, app *client.App)
 	data.Description = types.StringValue(app.Description)
 	data.Visibility = types.StringValue(app.Visibility)
 	data.ProductionBranch = types.StringValue(app.ProductionBranch)
-	data.Region = types.StringValue(app.Region)
 	data.CreatedAt = types.StringValue(app.CreatedAt)
+	data.ClusterID = types.StringValue(app.ClusterID)
 	data.APIKey = types.StringValue(app.APIKey)
+
+	// Region can be at top level or inside config
+	if app.Region != "" {
+		data.Region = types.StringValue(app.Region)
+	} else if app.Config != nil && app.Config.Region != "" {
+		data.Region = types.StringValue(app.Config.Region)
+	} else {
+		data.Region = types.StringNull()
+	}
 
 	// Map config fields if available
 	if app.Config != nil {

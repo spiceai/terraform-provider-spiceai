@@ -60,6 +60,7 @@ type AppResourceModel struct {
 
 	// Read-only attributes
 	CreatedAt types.String `tfsdk:"created_at"`
+	ClusterID types.String `tfsdk:"cluster_id"`
 	APIKey    types.String `tfsdk:"api_key"`
 }
 
@@ -181,6 +182,13 @@ resource "spiceai_app" "example" {
 			"created_at": schema.StringAttribute{
 				Computed:            true,
 				MarkdownDescription: "The timestamp when the app was created.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
+			},
+			"cluster_id": schema.StringAttribute{
+				Computed:            true,
+				MarkdownDescription: "The Kubernetes cluster identifier where the app is deployed.",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
@@ -441,10 +449,19 @@ func (r *AppResource) mapAppToModel(data *AppResourceModel, app *client.App) {
 		data.ProductionBranch = types.StringNull()
 	}
 
+	// Region can be at top level or inside config
 	if app.Region != "" {
 		data.Region = types.StringValue(app.Region)
+	} else if app.Config != nil && app.Config.Region != "" {
+		data.Region = types.StringValue(app.Config.Region)
 	} else {
 		data.Region = types.StringNull()
+	}
+
+	if app.ClusterID != "" {
+		data.ClusterID = types.StringValue(app.ClusterID)
+	} else {
+		data.ClusterID = types.StringNull()
 	}
 
 	if app.CreatedAt != "" {
