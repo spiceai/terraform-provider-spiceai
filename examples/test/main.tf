@@ -17,15 +17,12 @@ provider "spiceai" {
   # Optional: Custom OAuth endpoint (defaults to https://spice.ai/api/oauth/token)
   # oauth_endpoint = "https://spice.ai/api/oauth/token"
   oauth_endpoint = "https://dev.spice.ai/api/oauth/token"
-
-  # Optional: Vercel protection bypass token for preview deployments
-  # vercel_protection_bypass = "cgWEL8HZ32wB6byCBh96gQepmx4HskWd"
 }
 
 # Create a test app with full configuration
 # resource "spiceai_app" "test" {
 #   name        = "terraform-test-app-2"
-#   description = "Test app for Terraform provider validation, test"
+#   description = "Test app for Terraform provider validation, test update 1"
 #   visibility  = "private"
 
 #   # # Spicepod configuration
