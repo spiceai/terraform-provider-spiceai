@@ -1,5 +1,7 @@
 # Makefile for terraform-provider-spiceai
 
+default: build
+
 BINARY_NAME=terraform-provider-spiceai
 VERSION?=dev
 GOOS?=$(shell go env GOOS)
@@ -12,7 +14,7 @@ LDFLAGS=-ldflags "-X main.version=$(VERSION)"
 PROJECT_DIR=$(shell pwd)
 TEST_DIR=$(PROJECT_DIR)/examples/test
 
-.PHONY: all build clean test testacc fmt vet lint install setup plan apply destroy help
+.PHONY: all build clean test testacc fmt vet lint install setup plan apply destroy help generate
 
 # Default target
 all: build
@@ -103,7 +105,11 @@ clean:
 	rm -f $(TEST_DIR)/terraform.tfstate.backup
 	@echo "Clean complete"
 
-## Documentation
+## Documentation and Code Generation
+
+generate:
+	@echo "Running code generation..."
+	cd tools && go generate ./...
 
 docs:
 	@echo "Generating documentation..."
@@ -138,6 +144,10 @@ help:
 	@echo "  make vet         - Run go vet"
 	@echo "  make lint        - Run linter"
 	@echo ""
+	@echo "Code Generation:"
+	@echo "  make generate    - Run all code generation (docs, formatting, headers)"
+	@echo "  make docs        - Generate provider documentation only"
+	@echo ""
 	@echo "Development:"
 	@echo "  make setup       - Set up ~/.terraformrc with dev_overrides"
 	@echo "  make plan        - Build and run terraform plan"
@@ -148,7 +158,6 @@ help:
 	@echo "  make clean       - Clean build artifacts and state files"
 	@echo ""
 	@echo "Other:"
-	@echo "  make docs        - Generate provider documentation"
 	@echo "  make deps        - Download dependencies"
 	@echo "  make tidy        - Tidy dependencies"
 	@echo ""
