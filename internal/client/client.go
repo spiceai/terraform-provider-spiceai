@@ -23,11 +23,12 @@ const (
 
 // SpiceAIClient is the client for interacting with the Spice.ai API.
 type SpiceAIClient struct {
-	httpClient    *http.Client
-	apiEndpoint   string
-	oauthEndpoint string
-	clientID      string
-	clientSecret  string
+	httpClient             *http.Client
+	apiEndpoint            string
+	oauthEndpoint          string
+	clientID               string
+	clientSecret           string
+	vercelProtectionBypass string
 
 	// Token management
 	accessToken string
@@ -43,7 +44,7 @@ type TokenResponse struct {
 }
 
 // NewSpiceAIClient creates a new Spice.ai API client.
-func NewSpiceAIClient(clientID, clientSecret, apiEndpoint, oauthEndpoint string) *SpiceAIClient {
+func NewSpiceAIClient(clientID, clientSecret, apiEndpoint, oauthEndpoint, vercelProtectionBypass string) *SpiceAIClient {
 	if apiEndpoint == "" {
 		apiEndpoint = DefaultAPIEndpoint
 	}
@@ -55,10 +56,11 @@ func NewSpiceAIClient(clientID, clientSecret, apiEndpoint, oauthEndpoint string)
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
 		},
-		apiEndpoint:   strings.TrimSuffix(apiEndpoint, "/"),
-		oauthEndpoint: oauthEndpoint,
-		clientID:      clientID,
-		clientSecret:  clientSecret,
+		apiEndpoint:            strings.TrimSuffix(apiEndpoint, "/"),
+		oauthEndpoint:          oauthEndpoint,
+		clientID:               clientID,
+		clientSecret:           clientSecret,
+		vercelProtectionBypass: vercelProtectionBypass,
 	}
 }
 
@@ -142,6 +144,9 @@ func (c *SpiceAIClient) doRequest(ctx context.Context, method, path string, body
 	req.Header.Set("Authorization", "Bearer "+token)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
+	if c.vercelProtectionBypass != "" {
+		req.Header.Set("x-vercel-protection-bypass", c.vercelProtectionBypass)
+	}
 
 	return c.httpClient.Do(req)
 }

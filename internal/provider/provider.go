@@ -31,10 +31,11 @@ type SpiceAIProvider struct {
 
 // SpiceAIProviderModel describes the provider data model.
 type SpiceAIProviderModel struct {
-	ClientID      types.String `tfsdk:"client_id"`
-	ClientSecret  types.String `tfsdk:"client_secret"`
-	APIEndpoint   types.String `tfsdk:"api_endpoint"`
-	OAuthEndpoint types.String `tfsdk:"oauth_endpoint"`
+	ClientID               types.String `tfsdk:"client_id"`
+	ClientSecret           types.String `tfsdk:"client_secret"`
+	APIEndpoint            types.String `tfsdk:"api_endpoint"`
+	OAuthEndpoint          types.String `tfsdk:"oauth_endpoint"`
+	VercelProtectionBypass types.String `tfsdk:"vercel_protection_bypass"`
 }
 
 func (p *SpiceAIProvider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
@@ -83,6 +84,11 @@ provider "spiceai" {
 				MarkdownDescription: "The Spice.ai OAuth token endpoint. Defaults to `https://spice.ai/api/oauth/token`. Can also be set via the `SPICEAI_OAUTH_ENDPOINT` environment variable.",
 				Optional:            true,
 			},
+			"vercel_protection_bypass": schema.StringAttribute{
+				MarkdownDescription: "Optional bypass token for Vercel deployment protection. When set, adds the `x-vercel-protection-bypass` header to API requests. Can also be set via the `SPICEAI_VERCEL_PROTECTION_BYPASS` environment variable.",
+				Optional:            true,
+				Sensitive:           true,
+			},
 		},
 	}
 }
@@ -100,6 +106,7 @@ func (p *SpiceAIProvider) Configure(ctx context.Context, req provider.ConfigureR
 	clientSecret := getConfigValue(data.ClientSecret, "SPICEAI_CLIENT_SECRET")
 	apiEndpoint := getConfigValue(data.APIEndpoint, "SPICEAI_API_ENDPOINT")
 	oauthEndpoint := getConfigValue(data.OAuthEndpoint, "SPICEAI_OAUTH_ENDPOINT")
+	vercelProtectionBypass := getConfigValue(data.VercelProtectionBypass, "SPICEAI_VERCEL_PROTECTION_BYPASS")
 
 	// Validate required configuration
 	if clientID == "" {
@@ -123,7 +130,7 @@ func (p *SpiceAIProvider) Configure(ctx context.Context, req provider.ConfigureR
 	}
 
 	// Create the Spice.ai API client
-	spiceClient := client.NewSpiceAIClient(clientID, clientSecret, apiEndpoint, oauthEndpoint)
+	spiceClient := client.NewSpiceAIClient(clientID, clientSecret, apiEndpoint, oauthEndpoint, vercelProtectionBypass)
 
 	// Make the client available to resources and data sources
 	resp.DataSourceData = spiceClient
