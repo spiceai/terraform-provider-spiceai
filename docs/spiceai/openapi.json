@@ -10,6 +10,142 @@
     "version": "v1"
   },
   "paths": {
+    "/v1/apps/{appId}/api-keys": {
+      "get": {
+        "summary": "Get API keys for app",
+        "description": "Returns the API keys for a specific app. API keys are used to authenticate requests to the Spice runtime.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "appId",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "The ID of the app"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "API keys for the app",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "api_key": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "Primary API key"
+                    },
+                    "api_key_2": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "Secondary API key (for key rotation)"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Insufficient scope"
+          },
+          "404": {
+            "description": "App not found"
+          }
+        },
+        "tags": ["API Keys"]
+      },
+      "post": {
+        "summary": "Regenerate API key",
+        "description": "Regenerates an API key for the specified app. This invalidates the previous key. Use key_number to specify which key to regenerate (0 for both, 1 for primary, 2 for secondary).",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "appId",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "The ID of the app"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "key_number": {
+                    "type": "integer",
+                    "enum": [0, 1, 2],
+                    "default": 1,
+                    "description": "Which API key to regenerate (0 = both, 1 = primary, 2 = secondary)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "API key regenerated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "api_key": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "Primary API key"
+                    },
+                    "api_key_2": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "Secondary API key"
+                    },
+                    "regenerated_key": {
+                      "type": "integer",
+                      "enum": [0, 1, 2],
+                      "description": "Which key was regenerated (0 = both)"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Insufficient scope"
+          },
+          "404": {
+            "description": "App not found"
+          }
+        },
+        "tags": ["API Keys"]
+      }
+    },
     "/v1/apps/{appId}/deployments": {
       "get": {
         "summary": "List deployments",
@@ -43,13 +179,7 @@
             "name": "status",
             "schema": {
               "type": "string",
-              "enum": [
-                "queued",
-                "deploying",
-                "running",
-                "failed",
-                "stopped"
-              ]
+              "enum": ["queued", "deploying", "running", "failed", "stopped"]
             },
             "description": "Filter by deployment status"
           }
@@ -128,9 +258,7 @@
             "description": "App not found"
           }
         },
-        "tags": [
-          "Deployments"
-        ]
+        "tags": ["Deployments"]
       },
       "post": {
         "summary": "Create deployment",
@@ -231,9 +359,7 @@
             "description": "App not found"
           }
         },
-        "tags": [
-          "Deployments"
-        ]
+        "tags": ["Deployments"]
       }
     },
     "/v1/apps/{appId}": {
@@ -275,10 +401,7 @@
                     },
                     "visibility": {
                       "type": "string",
-                      "enum": [
-                        "public",
-                        "private"
-                      ]
+                      "enum": ["public", "private"]
                     },
                     "created_at": {
                       "type": "string",
@@ -328,9 +451,7 @@
             "description": "App not found"
           }
         },
-        "tags": [
-          "Apps"
-        ]
+        "tags": ["Apps"]
       },
       "put": {
         "summary": "Update app",
@@ -363,10 +484,7 @@
                   },
                   "visibility": {
                     "type": "string",
-                    "enum": [
-                      "public",
-                      "private"
-                    ]
+                    "enum": ["public", "private"]
                   },
                   "production_branch": {
                     "type": "string"
@@ -430,9 +548,7 @@
             "description": "App not found"
           }
         },
-        "tags": [
-          "Apps"
-        ]
+        "tags": ["Apps"]
       },
       "delete": {
         "summary": "Delete app",
@@ -467,9 +583,7 @@
             "description": "App not found"
           }
         },
-        "tags": [
-          "Apps"
-        ]
+        "tags": ["Apps"]
       }
     },
     "/v1/apps": {
@@ -507,9 +621,7 @@
             "description": "Insufficient scope"
           }
         },
-        "tags": [
-          "Apps"
-        ]
+        "tags": ["Apps"]
       },
       "post": {
         "summary": "Create app",
@@ -525,9 +637,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "name"
-                ],
+                "required": ["name"],
                 "properties": {
                   "name": {
                     "type": "string",
@@ -541,10 +651,7 @@
                   },
                   "visibility": {
                     "type": "string",
-                    "enum": [
-                      "public",
-                      "private"
-                    ],
+                    "enum": ["public", "private"],
                     "default": "private"
                   }
                 }
@@ -576,9 +683,7 @@
             "description": "App with this name already exists"
           }
         },
-        "tags": [
-          "Apps"
-        ]
+        "tags": ["Apps"]
       }
     },
     "/v1/container-images": {
@@ -596,10 +701,7 @@
             "name": "channel",
             "schema": {
               "type": "string",
-              "enum": [
-                "stable",
-                "enterprise"
-              ],
+              "enum": ["stable", "enterprise"],
               "default": "stable"
             },
             "description": "The release channel to fetch container images from.\n- stable: Public OSS images from Docker Hub\n- enterprise: Enterprise images (requires enterprise subscription)\n"
@@ -628,10 +730,7 @@
                           },
                           "channel": {
                             "type": "string",
-                            "enum": [
-                              "stable",
-                              "enterprise"
-                            ]
+                            "enum": ["stable", "enterprise"]
                           }
                         }
                       }
@@ -652,9 +751,7 @@
             "description": "Insufficient scope"
           }
         },
-        "tags": [
-          "Container Images"
-        ]
+        "tags": ["Container Images"]
       }
     },
     "/v1/docs": {
@@ -673,9 +770,7 @@
             }
           }
         },
-        "tags": [
-          "Documentation"
-        ]
+        "tags": ["Documentation"]
       }
     },
     "/v1/health": {
@@ -704,9 +799,7 @@
             }
           }
         },
-        "tags": [
-          "Health"
-        ]
+        "tags": ["Health"]
       }
     },
     "/v1/regions": {
@@ -724,10 +817,7 @@
             "name": "env",
             "schema": {
               "type": "string",
-              "enum": [
-                "prod",
-                "dev"
-              ]
+              "enum": ["prod", "dev"]
             },
             "description": "Filter by environment (defaults to prod in production)"
           }
@@ -755,19 +845,11 @@
                           },
                           "provider": {
                             "type": "string",
-                            "enum": [
-                              "teraswitch",
-                              "aws",
-                              "azure"
-                            ]
+                            "enum": ["teraswitch", "aws", "azure"]
                           },
                           "providerName": {
                             "type": "string",
-                            "enum": [
-                              "Teraswitch",
-                              "AWS",
-                              "Azure"
-                            ]
+                            "enum": ["Teraswitch", "AWS", "Azure"]
                           },
                           "isDefault": {
                             "type": "boolean"
@@ -794,9 +876,7 @@
             "description": "Insufficient scope"
           }
         },
-        "tags": [
-          "Regions"
-        ]
+        "tags": ["Regions"]
       }
     }
   },
