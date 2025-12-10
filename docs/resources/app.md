@@ -4,6 +4,34 @@ page_title: "spiceai_app Resource - spiceai"
 subcategory: ""
 description: |-
   Manages a Spice.ai app and its configuration.
+  Apps are the primary organizational unit in Spice.ai for deploying and managing spicepods. This resource creates an app and configures its spicepod, runtime settings, and deployment parameters.
+  Example Usage
+  
+  resource "spiceai_app" "example" {
+    name        = "my-terraform-app"
+    description = "An app created and managed by Terraform"
+    visibility  = "private"
+  
+    # Spicepod configuration (YAML or JSON)
+    spicepod = <<-YAML
+      version: v1beta1
+      kind: Spicepod
+      name: my-app
+      datasets:
+        - name: taxi_trips
+          from: s3://spiceai-demo-datasets/taxi_trips/2024/
+          params:
+            file_format: parquet
+    YAML
+  
+    # Runtime configuration
+    image_tag             = "latest"
+    replicas              = 2
+    node_group            = "default"
+    region                = "us-east-1"
+    storage_claim_size_gb = 10.0
+    production_branch     = "main"
+  }
 ---
 
 # spiceai_app (Resource)
@@ -14,19 +42,45 @@ Apps are the primary organizational unit in Spice.ai for deploying and managing 
 
 ## Example Usage
 
-### Basic App
+```hcl
+resource "spiceai_app" "example" {
+  name        = "my-terraform-app"
+  description = "An app created and managed by Terraform"
+  visibility  = "private"
+
+  # Spicepod configuration (YAML or JSON)
+  spicepod = <<-YAML
+    version: v1beta1
+    kind: Spicepod
+    name: my-app
+    datasets:
+      - name: taxi_trips
+        from: s3://spiceai-demo-datasets/taxi_trips/2024/
+        params:
+          file_format: parquet
+  YAML
+
+  # Runtime configuration
+  image_tag             = "latest"
+  replicas              = 2
+  node_group            = "default"
+  region                = "us-east-1"
+  storage_claim_size_gb = 10.0
+  production_branch     = "main"
+}
+```
+
+## Example Usage
 
 ```terraform
+# Basic app with minimal configuration
 resource "spiceai_app" "basic" {
   name        = "my-basic-app"
   description = "A basic Spice.ai app"
   visibility  = "private"
 }
-```
 
-### Full App with Spicepod and Runtime Configuration
-
-```terraform
+# Full app with spicepod and runtime configuration
 resource "spiceai_app" "full" {
   name        = "my-full-app"
   description = "A fully configured Spice.ai app"
@@ -55,11 +109,8 @@ resource "spiceai_app" "full" {
   storage_claim_size_gb = 10.0
   production_branch     = "main"
 }
-```
 
-### App with JSON Spicepod Configuration
-
-```terraform
+# App with JSON spicepod configuration
 resource "spiceai_app" "json_config" {
   name        = "my-json-app"
   description = "An app with JSON spicepod configuration"
@@ -103,6 +154,7 @@ resource "spiceai_app" "json_config" {
 ### Read-Only
 
 - `api_key` (String, Sensitive) The API key for the app. This is used to authenticate requests to the app's endpoints.
+- `cluster_id` (String) The Kubernetes cluster identifier where the app is deployed.
 - `created_at` (String) The timestamp when the app was created.
 - `id` (String) The unique identifier of the app.
 
@@ -113,5 +165,6 @@ Import is supported using the following syntax:
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
+# Import an app using its ID
 terraform import spiceai_app.example 12345
 ```

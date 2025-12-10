@@ -10,31 +10,31 @@ description: |-
 
 Retrieves a list of all Spice.ai apps in the authenticated organization.
 
-Use this data source to list all apps in your organization and access their configuration details.
-
 ## Example Usage
 
-### List All Apps
-
 ```terraform
+# List all apps in the organization
 data "spiceai_apps" "all" {}
 
+# Output the count of apps
 output "app_count" {
   description = "The total number of apps in the organization"
   value       = length(data.spiceai_apps.all.apps)
 }
 
+# Output all app names
 output "app_names" {
   description = "List of all app names"
   value       = [for app in data.spiceai_apps.all.apps : app.name]
 }
-```
 
-### Filter Apps by Visibility
+# Output all app IDs
+output "app_ids" {
+  description = "List of all app IDs"
+  value       = [for app in data.spiceai_apps.all.apps : app.id]
+}
 
-```terraform
-data "spiceai_apps" "all" {}
-
+# Filter apps by visibility
 output "public_apps" {
   description = "List of public app names"
   value       = [for app in data.spiceai_apps.all.apps : app.name if app.visibility == "public"]
@@ -44,31 +44,20 @@ output "private_apps" {
   description = "List of private app names"
   value       = [for app in data.spiceai_apps.all.apps : app.name if app.visibility == "private"]
 }
-```
 
-### Get Apps with Configuration Details
-
-```terraform
-data "spiceai_apps" "all" {}
-
+# Get apps with their configurations
 output "apps_with_config" {
-  description = "Map of app names to their configuration"
+  description = "Map of app names to their replica counts"
   value = {
     for app in data.spiceai_apps.all.apps : app.name => {
-      id        = app.id
       replicas  = app.replicas
       image_tag = app.image_tag
       region    = app.region
     }
   }
 }
-```
 
-### Find a Specific App by Name
-
-```terraform
-data "spiceai_apps" "all" {}
-
+# Find a specific app by name
 locals {
   target_app_name = "my-app"
   target_app = [
@@ -95,30 +84,17 @@ output "found_app_id" {
 
 Read-Only:
 
-#### Identity
-
-- `id` (String) The unique identifier of the app.
-- `name` (String) The name of the app.
-
-#### Basic Configuration
-
-- `description` (String) A description of the app.
-- `visibility` (String) The visibility of the app (`public` or `private`).
-- `production_branch` (String) The production branch for the app.
-
-#### Spicepod Configuration
-
-- `spicepod` (String) The spicepod configuration as a JSON string.
-
-#### Runtime Configuration
-
-- `image_tag` (String) The Spice.ai runtime image tag.
-- `replicas` (Number) The number of replicas.
-- `node_group` (String) The node group for the app.
-- `region` (String) The region where the app is deployed.
-- `storage_claim_size_gb` (Number) The storage claim size in GB.
-
-#### Metadata
-
-- `created_at` (String) The timestamp when the app was created.
 - `api_key` (String, Sensitive) The API key for the app.
+- `cluster_id` (String) The Kubernetes cluster identifier where the app is deployed.
+- `created_at` (String) The timestamp when the app was created.
+- `description` (String) A description of the app.
+- `id` (String) The unique identifier of the app.
+- `image_tag` (String) The Spice.ai runtime image tag.
+- `name` (String) The name of the app.
+- `node_group` (String) The node group for the app.
+- `production_branch` (String) The production branch for the app.
+- `region` (String) The region where the app is deployed.
+- `replicas` (Number) The number of replicas.
+- `spicepod` (String) The spicepod configuration as a JSON string.
+- `storage_claim_size_gb` (Number) The storage claim size in GB.
+- `visibility` (String) The visibility of the app (`public` or `private`).

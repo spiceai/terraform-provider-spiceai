@@ -4,6 +4,22 @@ page_title: "spiceai_deployment Resource - spiceai"
 subcategory: ""
 description: |-
   Creates a deployment for a Spice.ai app.
+  A deployment uses the app's current spicepod configuration and deploys it to the Spice.ai cloud infrastructure. Deployments are immutable - any changes to deployment parameters will create a new deployment.
+  Example Usage
+  
+  resource "spiceai_deployment" "example" {
+    app_id = spiceai_app.example.id
+  
+    # Optional: Override settings for this deployment
+    image_tag = "v0.18.0"
+    replicas  = 2
+    debug     = false
+  
+    # Optional: Git tracking information
+    branch         = "main"
+    commit_sha     = "abc123def456"
+    commit_message = "Deploy via Terraform"
+  }
 ---
 
 # spiceai_deployment (Resource)
@@ -14,17 +30,31 @@ A deployment uses the app's current spicepod configuration and deploys it to the
 
 ## Example Usage
 
-### Basic Deployment
-
-```terraform
-resource "spiceai_deployment" "basic" {
+```hcl
+resource "spiceai_deployment" "example" {
   app_id = spiceai_app.example.id
+
+  # Optional: Override settings for this deployment
+  image_tag = "v0.18.0"
+  replicas  = 2
+  debug     = false
+
+  # Optional: Git tracking information
+  branch         = "main"
+  commit_sha     = "abc123def456"
+  commit_message = "Deploy via Terraform"
 }
 ```
 
-### Deployment with Custom Settings
+## Example Usage
 
 ```terraform
+# Basic deployment using app defaults
+resource "spiceai_deployment" "basic" {
+  app_id = spiceai_app.example.id
+}
+
+# Deployment with custom settings
 resource "spiceai_deployment" "custom" {
   app_id = spiceai_app.example.id
 
@@ -33,11 +63,8 @@ resource "spiceai_deployment" "custom" {
   replicas  = 3
   debug     = false
 }
-```
 
-### Deployment with Git Tracking Information
-
-```terraform
+# Deployment with git tracking information
 resource "spiceai_deployment" "with_git_info" {
   app_id = spiceai_app.example.id
 
@@ -50,11 +77,8 @@ resource "spiceai_deployment" "with_git_info" {
   image_tag = "latest"
   replicas  = 2
 }
-```
 
-### Production Deployment
-
-```terraform
+# Production deployment with all options
 resource "spiceai_deployment" "production" {
   app_id = spiceai_app.production.id
 
@@ -86,11 +110,14 @@ resource "spiceai_deployment" "production" {
 ### Read-Only
 
 - `created_at` (String) The timestamp when the deployment was created.
+- `created_by` (Number) The user ID who created the deployment.
+- `creation_source` (String) How the deployment was created (e.g., `api`, `dashboard`).
 - `error_message` (String) Error message if the deployment failed.
 - `finished_at` (String) The timestamp when the deployment finished.
 - `id` (String) The unique identifier of the deployment.
 - `started_at` (String) The timestamp when the deployment started running.
 - `status` (String) The current status of the deployment. Possible values: `queued`, `deploying`, `running`, `failed`, `stopped`.
+- `updated_at` (String) The timestamp when the deployment was last updated.
 
 ## Import
 

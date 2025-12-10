@@ -37,10 +37,10 @@ resource "spiceai_app" "example" {
   YAML
 
   # Runtime configuration
-  image_tag             = "latest"
-  replicas              = 1
-  region                = "us-east-1"
-  production_branch     = "main"
+  image_tag         = "latest"
+  replicas          = 1
+  region            = "us-east-1"
+  production_branch = "main"
 }
 
 # Create a deployment for the app
