@@ -1,0 +1,19 @@
+# Terraform CLI configuration for local provider development
+#
+# To use this configuration:
+# 1. Copy this file to ~/.terraformrc (or ~/.tofurc for OpenTofu)
+# 2. Update the path below to point to your built provider binary
+# 3. Build the provider: go build -o terraform-provider-spiceai .
+#
+# Note: When dev_overrides is active, you don't need to run `terraform init`
+# and the provider will be loaded directly from the specified path.
+
+provider_installation {
+  dev_overrides {
+    # Update this path to where your terraform-provider-spiceai binary is located
+    "spiceai/spiceai" = "/Users/evgenii/Developer/Spice/terraform-provider-spiceai"
+  }
+
+  # Fall back to the default installation behavior for all other providers
+  direct {}
+}

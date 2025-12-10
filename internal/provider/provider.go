@@ -77,22 +77,34 @@ func (p *SpiceAIProvider) Configure(ctx context.Context, req provider.ConfigureR
 	}
 
 	// Get values from config or environment variables
-	clientID := data.ClientID.ValueString()
+	var clientID string
+	if !data.ClientID.IsNull() && !data.ClientID.IsUnknown() {
+		clientID = data.ClientID.ValueString()
+	}
 	if clientID == "" {
 		clientID = os.Getenv("SPICEAI_CLIENT_ID")
 	}
 
-	clientSecret := data.ClientSecret.ValueString()
+	var clientSecret string
+	if !data.ClientSecret.IsNull() && !data.ClientSecret.IsUnknown() {
+		clientSecret = data.ClientSecret.ValueString()
+	}
 	if clientSecret == "" {
 		clientSecret = os.Getenv("SPICEAI_CLIENT_SECRET")
 	}
 
-	apiEndpoint := data.APIEndpoint.ValueString()
+	var apiEndpoint string
+	if !data.APIEndpoint.IsNull() && !data.APIEndpoint.IsUnknown() {
+		apiEndpoint = data.APIEndpoint.ValueString()
+	}
 	if apiEndpoint == "" {
 		apiEndpoint = os.Getenv("SPICEAI_API_ENDPOINT")
 	}
 
-	oauthEndpoint := data.OAuthEndpoint.ValueString()
+	var oauthEndpoint string
+	if !data.OAuthEndpoint.IsNull() && !data.OAuthEndpoint.IsUnknown() {
+		oauthEndpoint = data.OAuthEndpoint.ValueString()
+	}
 	if oauthEndpoint == "" {
 		oauthEndpoint = os.Getenv("SPICEAI_OAUTH_ENDPOINT")
 	}
