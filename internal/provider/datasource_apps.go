@@ -31,20 +31,33 @@ type AppsDataSource struct {
 
 // AppsDataSourceModel describes the data source data model.
 type AppsDataSourceModel struct {
-	Apps []AppDataModel `tfsdk:"apps"`
+	Apps []AppModel `tfsdk:"apps"`
 }
 
-// AppDataModel describes an app in the list.
-type AppDataModel struct {
-	ID               types.String        `tfsdk:"id"`
-	Name             types.String        `tfsdk:"name"`
-	Description      types.String        `tfsdk:"description"`
-	Visibility       types.String        `tfsdk:"visibility"`
-	Region           types.String        `tfsdk:"region"`
-	CreatedAt        types.String        `tfsdk:"created_at"`
-	ProductionBranch types.String        `tfsdk:"production_branch"`
-	APIKey           types.String        `tfsdk:"api_key"`
-	Config           *AppConfigDataModel `tfsdk:"config"`
+// AppModel describes an app in the list.
+type AppModel struct {
+	// Identity
+	ID   types.String `tfsdk:"id"`
+	Name types.String `tfsdk:"name"`
+
+	// Basic configuration
+	Description      types.String `tfsdk:"description"`
+	Visibility       types.String `tfsdk:"visibility"`
+	ProductionBranch types.String `tfsdk:"production_branch"`
+
+	// Spicepod configuration
+	Spicepod types.String `tfsdk:"spicepod"`
+
+	// Runtime configuration
+	ImageTag           types.String  `tfsdk:"image_tag"`
+	Replicas           types.Int64   `tfsdk:"replicas"`
+	NodeGroup          types.String  `tfsdk:"node_group"`
+	Region             types.String  `tfsdk:"region"`
+	StorageClaimSizeGB types.Float64 `tfsdk:"storage_claim_size_gb"`
+
+	// Read-only attributes
+	CreatedAt types.String `tfsdk:"created_at"`
+	APIKey    types.String `tfsdk:"api_key"`
 }
 
 func (d *AppsDataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -57,10 +70,11 @@ func (d *AppsDataSource) Schema(ctx context.Context, req datasource.SchemaReques
 
 		Attributes: map[string]schema.Attribute{
 			"apps": schema.ListNestedAttribute{
-				MarkdownDescription: "List of apps.",
+				MarkdownDescription: "List of apps in the organization.",
 				Computed:            true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
+						// Identity attributes
 						"id": schema.StringAttribute{
 							MarkdownDescription: "The unique identifier of the app.",
 							Computed:            true,
@@ -69,56 +83,58 @@ func (d *AppsDataSource) Schema(ctx context.Context, req datasource.SchemaReques
 							MarkdownDescription: "The name of the app.",
 							Computed:            true,
 						},
+
+						// Basic configuration attributes
 						"description": schema.StringAttribute{
 							MarkdownDescription: "A description of the app.",
 							Computed:            true,
 						},
 						"visibility": schema.StringAttribute{
-							MarkdownDescription: "The visibility of the app (public or private).",
-							Computed:            true,
-						},
-						"region": schema.StringAttribute{
-							MarkdownDescription: "The region where the app is deployed.",
-							Computed:            true,
-						},
-						"created_at": schema.StringAttribute{
-							MarkdownDescription: "The timestamp when the app was created.",
+							MarkdownDescription: "The visibility of the app (`public` or `private`).",
 							Computed:            true,
 						},
 						"production_branch": schema.StringAttribute{
 							MarkdownDescription: "The production branch for the app.",
 							Computed:            true,
 						},
+
+						// Spicepod configuration
+						"spicepod": schema.StringAttribute{
+							MarkdownDescription: "The spicepod configuration as a JSON string.",
+							Computed:            true,
+						},
+
+						// Runtime configuration attributes
+						"image_tag": schema.StringAttribute{
+							MarkdownDescription: "The Spice.ai runtime image tag.",
+							Computed:            true,
+						},
+						"replicas": schema.Int64Attribute{
+							MarkdownDescription: "The number of replicas.",
+							Computed:            true,
+						},
+						"node_group": schema.StringAttribute{
+							MarkdownDescription: "The node group for the app.",
+							Computed:            true,
+						},
+						"region": schema.StringAttribute{
+							MarkdownDescription: "The region where the app is deployed.",
+							Computed:            true,
+						},
+						"storage_claim_size_gb": schema.Float64Attribute{
+							MarkdownDescription: "The storage claim size in GB.",
+							Computed:            true,
+						},
+
+						// Read-only attributes
+						"created_at": schema.StringAttribute{
+							MarkdownDescription: "The timestamp when the app was created.",
+							Computed:            true,
+						},
 						"api_key": schema.StringAttribute{
 							MarkdownDescription: "The API key for the app.",
 							Computed:            true,
 							Sensitive:           true,
-						},
-						"config": schema.SingleNestedAttribute{
-							MarkdownDescription: "The configuration of the app.",
-							Computed:            true,
-							Attributes: map[string]schema.Attribute{
-								"spicepod": schema.StringAttribute{
-									MarkdownDescription: "The spicepod configuration as a JSON string.",
-									Computed:            true,
-								},
-								"image_tag": schema.StringAttribute{
-									MarkdownDescription: "The Spice.ai runtime image tag.",
-									Computed:            true,
-								},
-								"replicas": schema.Int64Attribute{
-									MarkdownDescription: "The number of replicas.",
-									Computed:            true,
-								},
-								"node_group": schema.StringAttribute{
-									MarkdownDescription: "The node group for the app.",
-									Computed:            true,
-								},
-								"storage_claim_size_gb": schema.Float64Attribute{
-									MarkdownDescription: "The storage claim size in GB.",
-									Computed:            true,
-								},
-							},
 						},
 					},
 				},
@@ -128,19 +144,16 @@ func (d *AppsDataSource) Schema(ctx context.Context, req datasource.SchemaReques
 }
 
 func (d *AppsDataSource) Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
-	// Prevent panic if the provider has not been configured.
 	if req.ProviderData == nil {
 		return
 	}
 
 	client, ok := req.ProviderData.(*client.SpiceAIClient)
-
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Data Source Configure Type",
 			fmt.Sprintf("Expected *client.SpiceAIClient, got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
-
 		return
 	}
 
@@ -150,14 +163,11 @@ func (d *AppsDataSource) Configure(ctx context.Context, req datasource.Configure
 func (d *AppsDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
 	var data AppsDataSourceModel
 
-	// Read Terraform configuration data into the model
 	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
-
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	// Call the API
 	apps, err := d.client.ListApps(ctx)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to list apps, got error: %s", err))
@@ -165,54 +175,59 @@ func (d *AppsDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 	}
 
 	// Map response to model
-	data.Apps = make([]AppDataModel, len(apps))
+	data.Apps = make([]AppModel, len(apps))
 	for i, app := range apps {
-		appModel := AppDataModel{
-			ID:               types.StringValue(strconv.FormatInt(app.ID, 10)),
-			Name:             types.StringValue(app.Name),
-			Description:      types.StringValue(app.Description),
-			Visibility:       types.StringValue(app.Visibility),
-			Region:           types.StringValue(app.Region),
-			CreatedAt:        types.StringValue(app.CreatedAt),
-			ProductionBranch: types.StringValue(app.ProductionBranch),
-			APIKey:           types.StringValue(app.APIKey),
-		}
-
-		// Map config if available
-		if app.Config != nil {
-			configModel := &AppConfigDataModel{
-				ImageTag:           types.StringValue(app.Config.ImageTag),
-				Replicas:           types.Int64Value(int64(app.Config.Replicas)),
-				NodeGroup:          types.StringValue(app.Config.NodeGroup),
-				StorageClaimSizeGB: types.Float64Value(app.Config.StorageClaimSizeGB),
-			}
-
-			// Handle spicepod - it comes as an interface, convert to string if present
-			if app.Config.Spicepod != nil {
-				if spicepodStr, ok := app.Config.Spicepod.(string); ok {
-					configModel.Spicepod = types.StringValue(spicepodStr)
-				} else {
-					// It's a JSON object, marshal it
-					if spicepodBytes, err := json.Marshal(app.Config.Spicepod); err == nil {
-						configModel.Spicepod = types.StringValue(string(spicepodBytes))
-					} else {
-						configModel.Spicepod = types.StringNull()
-					}
-				}
-			} else {
-				configModel.Spicepod = types.StringNull()
-			}
-
-			appModel.Config = configModel
-		}
-
-		data.Apps[i] = appModel
+		data.Apps[i] = d.mapAppToModel(&app)
 	}
 
 	tflog.Trace(ctx, "read apps data source", map[string]interface{}{
 		"count": len(apps),
 	})
 
-	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+}
+
+// mapAppToModel maps an API App response to the data source model.
+func (d *AppsDataSource) mapAppToModel(app *client.App) AppModel {
+	model := AppModel{
+		ID:               types.StringValue(strconv.FormatInt(app.ID, 10)),
+		Name:             types.StringValue(app.Name),
+		Description:      types.StringValue(app.Description),
+		Visibility:       types.StringValue(app.Visibility),
+		ProductionBranch: types.StringValue(app.ProductionBranch),
+		Region:           types.StringValue(app.Region),
+		CreatedAt:        types.StringValue(app.CreatedAt),
+		APIKey:           types.StringValue(app.APIKey),
+	}
+
+	// Map config fields if available
+	if app.Config != nil {
+		model.ImageTag = types.StringValue(app.Config.ImageTag)
+		model.Replicas = types.Int64Value(int64(app.Config.Replicas))
+		model.NodeGroup = types.StringValue(app.Config.NodeGroup)
+		model.StorageClaimSizeGB = types.Float64Value(app.Config.StorageClaimSizeGB)
+
+		// Handle spicepod - convert to JSON string if present
+		if app.Config.Spicepod != nil {
+			if spicepodStr, ok := app.Config.Spicepod.(string); ok {
+				model.Spicepod = types.StringValue(spicepodStr)
+			} else {
+				if spicepodBytes, err := json.Marshal(app.Config.Spicepod); err == nil {
+					model.Spicepod = types.StringValue(string(spicepodBytes))
+				} else {
+					model.Spicepod = types.StringNull()
+				}
+			}
+		} else {
+			model.Spicepod = types.StringNull()
+		}
+	} else {
+		model.ImageTag = types.StringNull()
+		model.Replicas = types.Int64Null()
+		model.NodeGroup = types.StringNull()
+		model.StorageClaimSizeGB = types.Float64Null()
+		model.Spicepod = types.StringNull()
+	}
+
+	return model
 }

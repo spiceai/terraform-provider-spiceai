@@ -1,83 +1,90 @@
-# Simple test configuration for local development
-# 
-# Prerequisites:
-# 1. Set environment variables:
-#    export SPICEAI_CLIENT_ID="your-client-id"
-#    export SPICEAI_CLIENT_SECRET="your-client-secret"
-#
-# 2. Configure ~/.terraformrc with dev_overrides (see ../.terraformrc.example)
-#
-# 3. Build the provider:
-#    cd ../.. && go build -o terraform-provider-spiceai .
-#
-# Usage:
-#    terraform plan
-#    terraform apply
-
+# Test configuration for Spice.ai Terraform Provider
 terraform {
   required_providers {
     spiceai = {
-      source = "spiceai/spiceai"
+      source  = "spiceai/spiceai"
+      version = "~> 0.1"
     }
   }
 }
 
-provider "spiceai" {
-  # Credentials are read from environment variables:
-  # - SPICEAI_CLIENT_ID
-  # - SPICEAI_CLIENT_SECRET
-}
+# Provider configuration using environment variables
+# Set SPICEAI_CLIENT_ID and SPICEAI_CLIENT_SECRET before running
+provider "spiceai" {}
 
-# Test 1: List all existing apps (data source)
-data "spiceai_apps" "all" {}
-
-output "existing_apps" {
-  description = "List of all existing apps"
-  value       = [for app in data.spiceai_apps.all.apps : { id = app.id, name = app.name }]
-}
-
-# Test 2: Create a new app
+# Create a test app with full configuration
 resource "spiceai_app" "test" {
   name        = "terraform-test-app"
-  description = "Test app created by Terraform provider"
+  description = "Test app for Terraform provider validation"
   visibility  = "private"
-}
 
-output "created_app_id" {
-  description = "ID of the created app"
-  value       = spiceai_app.test.id
-}
-
-output "created_app_api_key" {
-  description = "API key of the created app"
-  value       = spiceai_app.test.api_key
-  sensitive   = true
-}
-
-# Test 3: Apply configuration to the app
-resource "spiceai_app_config" "test" {
-  app_id = spiceai_app.test.id
-
+  # Spicepod configuration
   spicepod = <<-YAML
     version: v1beta1
     kind: Spicepod
     name: terraform-test-app
+    datasets:
+      - name: test_dataset
+        from: s3://spiceai-demo-datasets/taxi_trips/2024/
+        params:
+          file_format: parquet
   YAML
 
-  replicas = 1
+  # Runtime configuration
+  image_tag         = "latest"
+  replicas          = 1
+  production_branch = "main"
 }
 
-# Test 4: Create a deployment (uncomment to test)
-# resource "spiceai_deployment" "test" {
-#   app_id = spiceai_app.test.id
-#   
-#   depends_on = [spiceai_app_config.test]
-# }
-#
-# output "deployment_id" {
-#   value = spiceai_deployment.test.id
-# }
-#
-# output "deployment_status" {
-#   value = spiceai_deployment.test.status
-# }
+# Create a deployment for the test app
+resource "spiceai_deployment" "test" {
+  app_id = spiceai_app.test.id
+
+  # Use app defaults
+  debug = false
+}
+
+# Data source: Read back the app we created
+data "spiceai_app" "test" {
+  id = spiceai_app.test.id
+}
+
+# Data source: List all apps
+data "spiceai_apps" "all" {}
+
+# Outputs for verification
+output "app_id" {
+  description = "The ID of the test app"
+  value       = spiceai_app.test.id
+}
+
+output "app_name" {
+  description = "The name of the test app"
+  value       = spiceai_app.test.name
+}
+
+output "app_api_key" {
+  description = "The API key for the test app"
+  value       = spiceai_app.test.api_key
+  sensitive   = true
+}
+
+output "deployment_id" {
+  description = "The ID of the deployment"
+  value       = spiceai_deployment.test.id
+}
+
+output "deployment_status" {
+  description = "The status of the deployment"
+  value       = spiceai_deployment.test.status
+}
+
+output "data_source_app_name" {
+  description = "App name from data source"
+  value       = data.spiceai_app.test.name
+}
+
+output "all_apps_count" {
+  description = "Total number of apps in the organization"
+  value       = length(data.spiceai_apps.all.apps)
+}

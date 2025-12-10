@@ -10,13 +10,76 @@ description: |-
 
 Retrieves a list of all Spice.ai apps in the authenticated organization.
 
+Use this data source to list all apps in your organization and access their configuration details.
+
 ## Example Usage
+
+### List All Apps
 
 ```terraform
 data "spiceai_apps" "all" {}
 
-output "all_app_names" {
-  value = [for app in data.spiceai_apps.all.apps : app.name]
+output "app_count" {
+  description = "The total number of apps in the organization"
+  value       = length(data.spiceai_apps.all.apps)
+}
+
+output "app_names" {
+  description = "List of all app names"
+  value       = [for app in data.spiceai_apps.all.apps : app.name]
+}
+```
+
+### Filter Apps by Visibility
+
+```terraform
+data "spiceai_apps" "all" {}
+
+output "public_apps" {
+  description = "List of public app names"
+  value       = [for app in data.spiceai_apps.all.apps : app.name if app.visibility == "public"]
+}
+
+output "private_apps" {
+  description = "List of private app names"
+  value       = [for app in data.spiceai_apps.all.apps : app.name if app.visibility == "private"]
+}
+```
+
+### Get Apps with Configuration Details
+
+```terraform
+data "spiceai_apps" "all" {}
+
+output "apps_with_config" {
+  description = "Map of app names to their configuration"
+  value = {
+    for app in data.spiceai_apps.all.apps : app.name => {
+      id        = app.id
+      replicas  = app.replicas
+      image_tag = app.image_tag
+      region    = app.region
+    }
+  }
+}
+```
+
+### Find a Specific App by Name
+
+```terraform
+data "spiceai_apps" "all" {}
+
+locals {
+  target_app_name = "my-app"
+  target_app = [
+    for app in data.spiceai_apps.all.apps : app
+    if app.name == local.target_app_name
+  ]
+}
+
+output "found_app_id" {
+  description = "ID of the found app (if exists)"
+  value       = length(local.target_app) > 0 ? local.target_app[0].id : null
 }
 ```
 
@@ -25,30 +88,37 @@ output "all_app_names" {
 
 ### Read-Only
 
-- `apps` (Attributes List) List of apps. (see [below for nested schema](#nestedatt--apps))
+- `apps` (Attributes List) List of apps in the organization. (see [below for nested schema](#nestedatt--apps))
 
 <a id="nestedatt--apps"></a>
 ### Nested Schema for `apps`
 
 Read-Only:
 
-- `api_key` (String, Sensitive) The API key for the app.
-- `config` (Attributes) The configuration of the app. (see [below for nested schema](#nestedatt--apps--config))
-- `created_at` (String) The timestamp when the app was created.
-- `description` (String) A description of the app.
+#### Identity
+
 - `id` (String) The unique identifier of the app.
 - `name` (String) The name of the app.
+
+#### Basic Configuration
+
+- `description` (String) A description of the app.
+- `visibility` (String) The visibility of the app (`public` or `private`).
 - `production_branch` (String) The production branch for the app.
-- `region` (String) The region where the app is deployed.
-- `visibility` (String) The visibility of the app (public or private).
 
-<a id="nestedatt--apps--config"></a>
-### Nested Schema for `apps.config`
+#### Spicepod Configuration
 
-Read-Only:
+- `spicepod` (String) The spicepod configuration as a JSON string.
+
+#### Runtime Configuration
 
 - `image_tag` (String) The Spice.ai runtime image tag.
-- `node_group` (String) The node group for the app.
 - `replicas` (Number) The number of replicas.
-- `spicepod` (String) The spicepod configuration as a JSON string.
+- `node_group` (String) The node group for the app.
+- `region` (String) The region where the app is deployed.
 - `storage_claim_size_gb` (Number) The storage claim size in GB.
+
+#### Metadata
+
+- `created_at` (String) The timestamp when the app was created.
+- `api_key` (String, Sensitive) The API key for the app.

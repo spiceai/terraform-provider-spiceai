@@ -18,16 +18,11 @@ provider "spiceai" {
   # api_endpoint  = "https://api.spice.ai" # Optional, defaults to production API
 }
 
-# Create a new Spice.ai app
+# Create a new Spice.ai app with configuration
 resource "spiceai_app" "example" {
   name        = "my-terraform-app"
   description = "An app created and managed by Terraform"
   visibility  = "private"
-}
-
-# Apply configuration to the app
-resource "spiceai_app_config" "example" {
-  app_id = spiceai_app.example.id
 
   # Spicepod configuration (YAML or JSON string)
   spicepod = <<-YAML
@@ -42,8 +37,10 @@ resource "spiceai_app_config" "example" {
   YAML
 
   # Runtime configuration
-  image_tag = "latest"
-  replicas  = 1
+  image_tag             = "latest"
+  replicas              = 1
+  region                = "us-east-1"
+  production_branch     = "main"
 }
 
 # Create a deployment for the app
@@ -56,12 +53,9 @@ resource "spiceai_deployment" "example" {
   # debug     = false
 
   # Optional: Git information for tracking
-  # branch        = "main"
-  # commit_sha    = "abc123"
+  # branch         = "main"
+  # commit_sha     = "abc123"
   # commit_message = "Deploy via Terraform"
-
-  # Deployment depends on the app config being applied first
-  depends_on = [spiceai_app_config.example]
 }
 
 # Data source: Get details about an existing app by ID

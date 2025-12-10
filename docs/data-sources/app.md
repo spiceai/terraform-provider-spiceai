@@ -3,14 +3,18 @@
 page_title: "spiceai_app Data Source - spiceai"
 subcategory: ""
 description: |-
-  Retrieves details about a Spice.ai app by its ID.
+  Retrieves details about an existing Spice.ai app by its ID.
 ---
 
 # spiceai_app (Data Source)
 
-Retrieves details about a Spice.ai app by its ID.
+Retrieves details about an existing Spice.ai app by its ID.
+
+Use this data source to access information about an existing app that you need to reference in your configuration.
 
 ## Example Usage
+
+### Basic Usage
 
 ```terraform
 data "spiceai_app" "example" {
@@ -18,12 +22,46 @@ data "spiceai_app" "example" {
 }
 
 output "app_name" {
-  value = data.spiceai_app.example.name
+  description = "The name of the app"
+  value       = data.spiceai_app.example.name
+}
+```
+
+### Reference App from Resource
+
+```terraform
+resource "spiceai_app" "example" {
+  name        = "my-app"
+  description = "My Spice.ai app"
+  visibility  = "private"
+}
+
+data "spiceai_app" "from_resource" {
+  id = spiceai_app.example.id
 }
 
 output "app_api_key" {
-  value     = data.spiceai_app.example.api_key
-  sensitive = true
+  description = "The API key for the app"
+  value       = data.spiceai_app.from_resource.api_key
+  sensitive   = true
+}
+```
+
+### Access Runtime Configuration
+
+```terraform
+data "spiceai_app" "example" {
+  id = "12345"
+}
+
+output "app_config" {
+  description = "The app's runtime configuration"
+  value = {
+    name      = data.spiceai_app.example.name
+    region    = data.spiceai_app.example.region
+    replicas  = data.spiceai_app.example.replicas
+    image_tag = data.spiceai_app.example.image_tag
+  }
 }
 ```
 
@@ -36,22 +74,29 @@ output "app_api_key" {
 
 ### Read-Only
 
-- `api_key` (String, Sensitive) The API key for the app.
-- `config` (Attributes) The configuration of the app. (see [below for nested schema](#nestedatt--config))
-- `created_at` (String) The timestamp when the app was created.
-- `description` (String) A description of the app.
+#### Identity
+
 - `name` (String) The name of the app.
+
+#### Basic Configuration
+
+- `description` (String) A description of the app.
+- `visibility` (String) The visibility of the app (`public` or `private`).
 - `production_branch` (String) The production branch for the app.
-- `region` (String) The region where the app is deployed.
-- `visibility` (String) The visibility of the app (public or private).
 
-<a id="nestedatt--config"></a>
-### Nested Schema for `config`
+#### Spicepod Configuration
 
-Read-Only:
+- `spicepod` (String) The spicepod configuration as a JSON string.
+
+#### Runtime Configuration
 
 - `image_tag` (String) The Spice.ai runtime image tag.
-- `node_group` (String) The node group for the app.
 - `replicas` (Number) The number of replicas.
-- `spicepod` (String) The spicepod configuration as a JSON string.
+- `node_group` (String) The node group for the app.
+- `region` (String) The region where the app is deployed.
 - `storage_claim_size_gb` (Number) The storage claim size in GB.
+
+#### Metadata
+
+- `created_at` (String) The timestamp when the app was created.
+- `api_key` (String, Sensitive) The API key for the app.

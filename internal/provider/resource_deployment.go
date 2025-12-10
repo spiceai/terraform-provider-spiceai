@@ -59,7 +59,27 @@ func (r *DeploymentResource) Metadata(ctx context.Context, req resource.Metadata
 
 func (r *DeploymentResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Creates a deployment for a Spice.ai app. A deployment uses the app's current spicepod configuration and deploys it to the Spice.ai cloud infrastructure.",
+		MarkdownDescription: `Creates a deployment for a Spice.ai app.
+
+A deployment uses the app's current spicepod configuration and deploys it to the Spice.ai cloud infrastructure. Deployments are immutable - any changes to deployment parameters will create a new deployment.
+
+## Example Usage
+
+` + "```hcl" + `
+resource "spiceai_deployment" "example" {
+  app_id = spiceai_app.example.id
+
+  # Optional: Override settings for this deployment
+  image_tag = "v0.18.0"
+  replicas  = 2
+  debug     = false
+
+  # Optional: Git tracking information
+  branch         = "main"
+  commit_sha     = "abc123def456"
+  commit_message = "Deploy via Terraform"
+}
+` + "```",
 
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
@@ -70,14 +90,14 @@ func (r *DeploymentResource) Schema(ctx context.Context, req resource.SchemaRequ
 				},
 			},
 			"app_id": schema.StringAttribute{
-				MarkdownDescription: "The ID of the app to deploy.",
+				MarkdownDescription: "The ID of the app to deploy. Changing this forces a new deployment to be created.",
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
 			"image_tag": schema.StringAttribute{
-				MarkdownDescription: "Override the Spice.ai runtime image tag for this deployment. If not specified, uses the app's configured image tag.",
+				MarkdownDescription: "Override the Spice.ai runtime image tag for this deployment. If not specified, uses the app's configured image tag. Changing this forces a new deployment to be created.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
@@ -86,7 +106,7 @@ func (r *DeploymentResource) Schema(ctx context.Context, req resource.SchemaRequ
 				},
 			},
 			"replicas": schema.Int64Attribute{
-				MarkdownDescription: "Override the number of replicas for this deployment. Must be between 1 and 10. If not specified, uses the app's configured replicas.",
+				MarkdownDescription: "Override the number of replicas for this deployment. Must be between 1 and 10. If not specified, uses the app's configured replicas. Changing this forces a new deployment to be created.",
 				Optional:            true,
 				Computed:            true,
 				Validators: []validator.Int64{
@@ -97,14 +117,14 @@ func (r *DeploymentResource) Schema(ctx context.Context, req resource.SchemaRequ
 				},
 			},
 			"branch": schema.StringAttribute{
-				MarkdownDescription: "Git branch name associated with this deployment.",
+				MarkdownDescription: "Git branch name associated with this deployment. Changing this forces a new deployment to be created.",
 				Optional:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
 			"commit_sha": schema.StringAttribute{
-				MarkdownDescription: "Git commit SHA associated with this deployment.",
+				MarkdownDescription: "Git commit SHA associated with this deployment. Changing this forces a new deployment to be created.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
@@ -113,7 +133,7 @@ func (r *DeploymentResource) Schema(ctx context.Context, req resource.SchemaRequ
 				},
 			},
 			"commit_message": schema.StringAttribute{
-				MarkdownDescription: "Git commit message associated with this deployment.",
+				MarkdownDescription: "Git commit message associated with this deployment. Changing this forces a new deployment to be created.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
@@ -122,7 +142,7 @@ func (r *DeploymentResource) Schema(ctx context.Context, req resource.SchemaRequ
 				},
 			},
 			"debug": schema.BoolAttribute{
-				MarkdownDescription: "Enable debug mode for this deployment.",
+				MarkdownDescription: "Enable debug mode for this deployment. Changing this forces a new deployment to be created.",
 				Optional:            true,
 				Computed:            true,
 				Default:             booldefault.StaticBool(false),
@@ -132,7 +152,7 @@ func (r *DeploymentResource) Schema(ctx context.Context, req resource.SchemaRequ
 			},
 			"status": schema.StringAttribute{
 				Computed:            true,
-				MarkdownDescription: "The current status of the deployment (queued, deploying, running, failed, stopped).",
+				MarkdownDescription: "The current status of the deployment. Possible values: `queued`, `deploying`, `running`, `failed`, `stopped`.",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
@@ -161,19 +181,16 @@ func (r *DeploymentResource) Schema(ctx context.Context, req resource.SchemaRequ
 }
 
 func (r *DeploymentResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
-	// Prevent panic if the provider has not been configured.
 	if req.ProviderData == nil {
 		return
 	}
 
 	client, ok := req.ProviderData.(*client.SpiceAIClient)
-
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
 			fmt.Sprintf("Expected *client.SpiceAIClient, got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
-
 		return
 	}
 
@@ -183,21 +200,17 @@ func (r *DeploymentResource) Configure(ctx context.Context, req resource.Configu
 func (r *DeploymentResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var data DeploymentResourceModel
 
-	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
-
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	// Parse app ID
 	appID, err := strconv.ParseInt(data.AppID.ValueString(), 10, 64)
 	if err != nil {
 		resp.Diagnostics.AddError("Invalid App ID", fmt.Sprintf("Unable to parse app ID: %s", err))
 		return
 	}
 
-	// Build create request
 	createReq := &client.CreateDeploymentRequest{}
 
 	if !data.ImageTag.IsNull() && !data.ImageTag.IsUnknown() {
@@ -226,73 +239,31 @@ func (r *DeploymentResource) Create(ctx context.Context, req resource.CreateRequ
 		createReq.Debug = &debug
 	}
 
-	// Call the API
 	deployment, err := r.client.CreateDeployment(ctx, appID, createReq)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create deployment, got error: %s", err))
 		return
 	}
 
-	// Map response to model
-	data.ID = types.StringValue(strconv.FormatInt(deployment.ID, 10))
-	data.Status = types.StringValue(deployment.Status)
-	data.CreatedAt = types.StringValue(deployment.CreatedAt)
+	r.mapDeploymentToModel(&data, deployment)
 
-	if deployment.ImageTag != "" {
-		data.ImageTag = types.StringValue(deployment.ImageTag)
-	}
-
-	if deployment.Replicas > 0 {
-		data.Replicas = types.Int64Value(int64(deployment.Replicas))
-	}
-
-	if deployment.CommitSHA != "" {
-		data.CommitSHA = types.StringValue(deployment.CommitSHA)
-	}
-
-	if deployment.CommitMessage != "" {
-		data.CommitMessage = types.StringValue(deployment.CommitMessage)
-	}
-
-	if deployment.StartedAt != "" {
-		data.StartedAt = types.StringValue(deployment.StartedAt)
-	} else {
-		data.StartedAt = types.StringNull()
-	}
-
-	if deployment.FinishedAt != "" {
-		data.FinishedAt = types.StringValue(deployment.FinishedAt)
-	} else {
-		data.FinishedAt = types.StringNull()
-	}
-
-	if deployment.ErrorMessage != "" {
-		data.ErrorMessage = types.StringValue(deployment.ErrorMessage)
-	} else {
-		data.ErrorMessage = types.StringNull()
-	}
-
-	tflog.Trace(ctx, "created a deployment resource", map[string]interface{}{
+	tflog.Trace(ctx, "created deployment", map[string]interface{}{
 		"id":     deployment.ID,
 		"app_id": appID,
 		"status": deployment.Status,
 	})
 
-	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
 func (r *DeploymentResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var data DeploymentResourceModel
 
-	// Read Terraform prior state data into the model
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
-
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	// Parse app ID and deployment ID
 	appID, err := strconv.ParseInt(data.AppID.ValueString(), 10, 64)
 	if err != nil {
 		resp.Diagnostics.AddError("Invalid App ID", fmt.Sprintf("Unable to parse app ID: %s", err))
@@ -305,20 +276,65 @@ func (r *DeploymentResource) Read(ctx context.Context, req resource.ReadRequest,
 		return
 	}
 
-	// Call the API
 	deployment, err := r.client.GetDeployment(ctx, appID, deploymentID)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read deployment, got error: %s", err))
 		return
 	}
 
-	// If the deployment was not found, remove from state
 	if deployment == nil {
 		resp.State.RemoveResource(ctx)
 		return
 	}
 
-	// Map response to model
+	r.mapDeploymentToModel(&data, deployment)
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+}
+
+func (r *DeploymentResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	// Deployments are immutable - any changes require replacement
+	// This should not be called due to RequiresReplace plan modifiers
+	resp.Diagnostics.AddError(
+		"Update Not Supported",
+		"Deployments are immutable and cannot be updated. Any changes require creating a new deployment.",
+	)
+}
+
+func (r *DeploymentResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var data DeploymentResourceModel
+
+	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Deployments cannot be deleted via API, they just get superseded by new deployments
+	// We just remove from Terraform state
+	tflog.Trace(ctx, "removed deployment from state (deployments cannot be deleted)", map[string]interface{}{
+		"id":     data.ID.ValueString(),
+		"app_id": data.AppID.ValueString(),
+	})
+}
+
+func (r *DeploymentResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	// Import format: app_id/deployment_id
+	parts := strings.Split(req.ID, "/")
+	if len(parts) != 2 {
+		resp.Diagnostics.AddError(
+			"Invalid Import ID",
+			fmt.Sprintf("Expected import ID in format 'app_id/deployment_id', got: %s", req.ID),
+		)
+		return
+	}
+
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("app_id"), parts[0])...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), parts[1])...)
+}
+
+// mapDeploymentToModel maps an API Deployment response to the Terraform model.
+func (r *DeploymentResource) mapDeploymentToModel(data *DeploymentResourceModel, deployment *client.Deployment) {
+	data.ID = types.StringValue(strconv.FormatInt(deployment.ID, 10))
 	data.Status = types.StringValue(deployment.Status)
 
 	if deployment.ImageTag != "" {
@@ -358,51 +374,6 @@ func (r *DeploymentResource) Read(ctx context.Context, req resource.ReadRequest,
 	} else {
 		data.ErrorMessage = types.StringNull()
 	}
-
-	// Save updated data into Terraform state
-	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
-}
-
-func (r *DeploymentResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	// Deployments are immutable - any changes require replacement
-	// This should not be called due to RequiresReplace plan modifiers
-	resp.Diagnostics.AddError(
-		"Update Not Supported",
-		"Deployments are immutable and cannot be updated. Any changes require creating a new deployment.",
-	)
-}
-
-func (r *DeploymentResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var data DeploymentResourceModel
-
-	// Read Terraform prior state data into the model
-	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
-
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	// Deployments cannot be deleted via API, they just get superseded by new deployments
-	// We just remove from Terraform state
-	tflog.Trace(ctx, "removed deployment from state (deployments cannot be deleted)", map[string]interface{}{
-		"id":     data.ID.ValueString(),
-		"app_id": data.AppID.ValueString(),
-	})
-}
-
-func (r *DeploymentResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	// Import format: app_id/deployment_id
-	parts := strings.Split(req.ID, "/")
-	if len(parts) != 2 {
-		resp.Diagnostics.AddError(
-			"Invalid Import ID",
-			fmt.Sprintf("Expected import ID in format 'app_id/deployment_id', got: %s", req.ID),
-		)
-		return
-	}
-
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("app_id"), parts[0])...)
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), parts[1])...)
 }
 
 // Custom plan modifiers for Int64 and Bool that require replacement
@@ -418,17 +389,14 @@ func (m int64PlanModifierRequiresReplace) MarkdownDescription(ctx context.Contex
 }
 
 func (m int64PlanModifierRequiresReplace) PlanModifyInt64(ctx context.Context, req planmodifier.Int64Request, resp *planmodifier.Int64Response) {
-	// Do nothing if there is no state value.
 	if req.StateValue.IsNull() {
 		return
 	}
 
-	// Do nothing if there is a known planned value.
 	if req.PlanValue.IsUnknown() {
 		return
 	}
 
-	// Do nothing if the values are equal.
 	if req.StateValue.Equal(req.PlanValue) {
 		return
 	}
@@ -447,17 +415,14 @@ func (m boolPlanModifierRequiresReplace) MarkdownDescription(ctx context.Context
 }
 
 func (m boolPlanModifierRequiresReplace) PlanModifyBool(ctx context.Context, req planmodifier.BoolRequest, resp *planmodifier.BoolResponse) {
-	// Do nothing if there is no state value.
 	if req.StateValue.IsNull() {
 		return
 	}
 
-	// Do nothing if there is a known planned value.
 	if req.PlanValue.IsUnknown() {
 		return
 	}
 
-	// Do nothing if the values are equal.
 	if req.StateValue.Equal(req.PlanValue) {
 		return
 	}

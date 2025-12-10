@@ -1,6 +1,6 @@
 # Terraform Provider for Spice.ai
 
-This Terraform provider allows you to manage [Spice.ai](https://spice.ai) resources including apps, app configurations, and deployments.
+This Terraform provider allows you to manage [Spice.ai Cloud](https://spice.ai) resources including apps and deployments.
 
 ## Requirements
 
@@ -61,75 +61,62 @@ provider "spiceai" {
 
 ### spiceai_app
 
-Manages a Spice.ai app.
+Manages a Spice.ai app and its configuration. This resource combines app creation with spicepod and runtime configuration.
 
 ```hcl
 resource "spiceai_app" "example" {
   name        = "my-app"
   description = "My Spice.ai application"
-  visibility  = "private" # or "public"
-}
-```
+  visibility  = "private"
 
-#### Attributes
-
-| Name | Type | Required | Description |
-|------|------|----------|-------------|
-| `name` | string | Yes | The name of the app (min 4 chars, alphanumeric and hyphens only) |
-| `description` | string | No | A description of the app |
-| `visibility` | string | No | The visibility (`public` or `private`, default: `private`) |
-
-#### Read-Only Attributes
-
-- `id` - The unique identifier of the app
-- `region` - The region where the app is deployed
-- `created_at` - Timestamp when the app was created
-- `api_key` - The API key for the app (sensitive)
-
-### spiceai_app_config
-
-Applies configuration to a Spice.ai app.
-
-```hcl
-resource "spiceai_app_config" "example" {
-  app_id = spiceai_app.example.id
-
+  # Spicepod configuration (YAML or JSON)
   spicepod = <<-YAML
     version: v1beta1
     kind: Spicepod
     name: my-app
     datasets:
-      - name: my_dataset
-        from: s3://bucket/path/
+      - name: taxi_trips
+        from: s3://spiceai-demo-datasets/taxi_trips/2024/
+        params:
+          file_format: parquet
   YAML
 
-  image_tag           = "latest"
-  replicas            = 2
-  node_group          = "default"
-  region              = "us-east-1"
+  # Runtime configuration
+  image_tag             = "latest"
+  replicas              = 2
+  node_group            = "default"
+  region                = "us-east-1"
   storage_claim_size_gb = 10.0
-  production_branch   = "main"
+  production_branch     = "main"
 }
 ```
 
-#### Attributes
+#### Arguments
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `app_id` | string | Yes | The ID of the app to configure |
-| `spicepod` | string | No | Spicepod configuration (YAML or JSON) |
-| `image_tag` | string | No | Spice.ai runtime image tag |
+| `name` | string | Yes | The name of the app (min 4 chars, alphanumeric and hyphens only). Changing this forces a new resource. |
+| `description` | string | No | A description of the app |
+| `visibility` | string | No | The visibility (`public` or `private`, default: `private`) |
+| `spicepod` | string | No | Spicepod configuration (YAML or JSON string) |
+| `image_tag` | string | No | Spice.ai runtime image tag (e.g., `latest`, `v0.18.0`) |
 | `replicas` | int | No | Number of replicas (1-10) |
 | `node_group` | string | No | Node group for deployment |
 | `region` | string | No | Deployment region |
 | `storage_claim_size_gb` | float | No | Storage claim size in GB |
-| `production_branch` | string | No | Production branch name |
-| `description` | string | No | App description |
-| `visibility` | string | No | App visibility |
+| `production_branch` | string | No | Production branch name for git-based deployments |
+
+#### Read-Only Attributes
+
+| Name | Description |
+|------|-------------|
+| `id` | The unique identifier of the app |
+| `created_at` | Timestamp when the app was created |
+| `api_key` | The API key for the app (sensitive) |
 
 ### spiceai_deployment
 
-Creates a deployment for a Spice.ai app.
+Creates a deployment for a Spice.ai app. Deployments are immutable - any changes will trigger creation of a new deployment.
 
 ```hcl
 resource "spiceai_deployment" "example" {
@@ -142,31 +129,31 @@ resource "spiceai_deployment" "example" {
   commit_sha     = "abc123def456"
   commit_message = "Deploy from Terraform"
   debug          = false
-
-  depends_on = [spiceai_app_config.example]
 }
 ```
 
-#### Attributes
+#### Arguments
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `app_id` | string | Yes | The ID of the app to deploy |
-| `image_tag` | string | No | Override image tag for this deployment |
-| `replicas` | int | No | Override replicas (1-10) |
-| `branch` | string | No | Git branch name |
-| `commit_sha` | string | No | Git commit SHA |
-| `commit_message` | string | No | Git commit message |
-| `debug` | bool | No | Enable debug mode (default: false) |
+| `app_id` | string | Yes | The ID of the app to deploy. Changing this forces a new deployment. |
+| `image_tag` | string | No | Override image tag for this deployment. Changing this forces a new deployment. |
+| `replicas` | int | No | Override replicas (1-10). Changing this forces a new deployment. |
+| `branch` | string | No | Git branch name. Changing this forces a new deployment. |
+| `commit_sha` | string | No | Git commit SHA. Changing this forces a new deployment. |
+| `commit_message` | string | No | Git commit message. Changing this forces a new deployment. |
+| `debug` | bool | No | Enable debug mode (default: false). Changing this forces a new deployment. |
 
 #### Read-Only Attributes
 
-- `id` - The unique identifier of the deployment
-- `status` - Current status (`queued`, `deploying`, `running`, `failed`, `stopped`)
-- `created_at` - Timestamp when the deployment was created
-- `started_at` - Timestamp when the deployment started
-- `finished_at` - Timestamp when the deployment finished
-- `error_message` - Error message if deployment failed
+| Name | Description |
+|------|-------------|
+| `id` | The unique identifier of the deployment |
+| `status` | Current status (`queued`, `deploying`, `running`, `failed`, `stopped`) |
+| `created_at` | Timestamp when the deployment was created |
+| `started_at` | Timestamp when the deployment started running |
+| `finished_at` | Timestamp when the deployment finished |
+| `error_message` | Error message if deployment failed |
 
 > **Note:** Deployments are immutable. Any changes to deployment parameters will trigger a replacement (new deployment).
 
@@ -174,7 +161,7 @@ resource "spiceai_deployment" "example" {
 
 ### spiceai_app
 
-Retrieves details about an existing app.
+Retrieves details about an existing app by ID.
 
 ```hcl
 data "spiceai_app" "example" {
@@ -183,6 +170,10 @@ data "spiceai_app" "example" {
 
 output "app_name" {
   value = data.spiceai_app.example.name
+}
+
+output "app_replicas" {
+  value = data.spiceai_app.example.replicas
 }
 ```
 
@@ -195,6 +186,10 @@ data "spiceai_apps" "all" {}
 
 output "app_names" {
   value = [for app in data.spiceai_apps.all.apps : app.name]
+}
+
+output "private_apps" {
+  value = [for app in data.spiceai_apps.all.apps : app.name if app.visibility == "private"]
 }
 ```
 
@@ -210,18 +205,16 @@ terraform {
   }
 }
 
-provider "spiceai" {}
+provider "spiceai" {
+  # Credentials are read from environment variables:
+  # SPICEAI_CLIENT_ID and SPICEAI_CLIENT_SECRET
+}
 
-# Create an app
+# Create an app with configuration
 resource "spiceai_app" "example" {
   name        = "my-terraform-app"
   description = "Managed by Terraform"
   visibility  = "private"
-}
-
-# Configure the app with a spicepod
-resource "spiceai_app_config" "example" {
-  app_id = spiceai_app.example.id
 
   spicepod = <<-YAML
     version: v1beta1
@@ -232,20 +225,24 @@ resource "spiceai_app_config" "example" {
         from: s3://spiceai-demo-datasets/taxi_trips/2024/
         params:
           file_format: parquet
-    YAML
+  YAML
 
-  replicas = 1
+  image_tag = "latest"
+  replicas  = 1
 }
 
 # Deploy the app
 resource "spiceai_deployment" "example" {
   app_id = spiceai_app.example.id
-  
-  depends_on = [spiceai_app_config.example]
 }
 
 output "app_id" {
   value = spiceai_app.example.id
+}
+
+output "app_api_key" {
+  value     = spiceai_app.example.api_key
+  sensitive = true
 }
 
 output "deployment_status" {
@@ -260,9 +257,6 @@ Resources can be imported using their IDs:
 ```bash
 # Import an app
 terraform import spiceai_app.example 12345
-
-# Import an app config (uses app ID)
-terraform import spiceai_app_config.example 12345
 
 # Import a deployment (format: app_id/deployment_id)
 terraform import spiceai_deployment.example 12345/67890
@@ -293,6 +287,12 @@ provider_installation {
   }
   direct {}
 }
+```
+
+### Generating Documentation
+
+```bash
+go generate ./...
 ```
 
 ## License
