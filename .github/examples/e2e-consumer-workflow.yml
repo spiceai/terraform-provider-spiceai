@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 # Example workflow for spicehq/cloud to consume the terraform provider artifact
 # Copy and adapt this workflow to your e2e test needs
 #
