@@ -3,30 +3,128 @@
 page_title: "spiceai_deployment Resource - spiceai"
 subcategory: ""
 description: |-
-  Creates a deployment for a Spice.ai app. A deployment uses the app's current spicepod configuration and deploys it to the Spice.ai cloud infrastructure.
+  Creates a deployment for a Spice.ai app.
+  A deployment uses the app's current spicepod configuration and deploys it to the Spice.ai cloud infrastructure. Deployments are immutable - any changes to deployment parameters will create a new deployment.
+  ~> Note: Deployments are append-only log entries. Removing this resource from your configuration will only remove it from Terraform state - it will NOT stop or affect the running instance. To deploy new changes, modify the configuration or triggers to create a new deployment.
+  Example Usage
+  Basic Deployment
+  
+  resource "spiceai_deployment" "example" {
+    app_id = spiceai_app.example.id
+  
+    # Optional: Override settings for this deployment
+    image_tag = "v0.18.0"
+    replicas  = 2
+    debug     = false
+  
+    # Optional: Git tracking information
+    branch         = "main"
+    commit_sha     = "abc123def456"
+    commit_message = "Deploy via Terraform"
+  }
+  
+  Deployment with Triggers
+  Use triggers to force a new deployment when external values change (similar to null_resource):
+  
+  resource "spiceai_deployment" "example" {
+    app_id = spiceai_app.example.id
+  
+    # Trigger new deployment when spicepod config changes
+    triggers = {
+      spicepod_hash = sha256(spiceai_app.example.spicepod)
+      # Or trigger on any value change
+      # deployment_version = "v1.2.3"
+    }
+  }
 ---
 
 # spiceai_deployment (Resource)
 
-Creates a deployment for a Spice.ai app. A deployment uses the app's current spicepod configuration and deploys it to the Spice.ai cloud infrastructure.
+Creates a deployment for a Spice.ai app.
+
+A deployment uses the app's current spicepod configuration and deploys it to the Spice.ai cloud infrastructure. Deployments are immutable - any changes to deployment parameters will create a new deployment.
+
+~> **Note:** Deployments are append-only log entries. Removing this resource from your configuration will only remove it from Terraform state - it will NOT stop or affect the running instance. To deploy new changes, modify the configuration or triggers to create a new deployment.
 
 ## Example Usage
 
-```terraform
+### Basic Deployment
+
+```hcl
 resource "spiceai_deployment" "example" {
   app_id = spiceai_app.example.id
 
   # Optional: Override settings for this deployment
-  # image_tag      = "v0.18.0"
-  # replicas       = 2
-  # debug          = false
+  image_tag = "v0.18.0"
+  replicas  = 2
+  debug     = false
 
   # Optional: Git tracking information
-  # branch         = "main"
-  # commit_sha     = "abc123def456"
-  # commit_message = "Deploy via Terraform"
+  branch         = "main"
+  commit_sha     = "abc123def456"
+  commit_message = "Deploy via Terraform"
+}
+```
 
-  depends_on = [spiceai_app_config.example]
+### Deployment with Triggers
+
+Use triggers to force a new deployment when external values change (similar to `null_resource`):
+
+```hcl
+resource "spiceai_deployment" "example" {
+  app_id = spiceai_app.example.id
+
+  # Trigger new deployment when spicepod config changes
+  triggers = {
+    spicepod_hash = sha256(spiceai_app.example.spicepod)
+    # Or trigger on any value change
+    # deployment_version = "v1.2.3"
+  }
+}
+```
+
+## Example Usage
+
+```terraform
+# Basic deployment using app defaults
+resource "spiceai_deployment" "basic" {
+  app_id = spiceai_app.example.id
+}
+
+# Deployment with custom settings
+resource "spiceai_deployment" "custom" {
+  app_id = spiceai_app.example.id
+
+  # Override runtime settings for this deployment
+  image_tag = "v0.18.0"
+  replicas  = 3
+  debug     = false
+}
+
+# Deployment with git tracking information
+resource "spiceai_deployment" "with_git_info" {
+  app_id = spiceai_app.example.id
+
+  # Git information for tracking and rollback
+  branch         = "main"
+  commit_sha     = "abc123def456789"
+  commit_message = "Deploy new feature via Terraform"
+
+  # Runtime overrides
+  image_tag = "latest"
+  replicas  = 2
+}
+
+# Production deployment with all options
+resource "spiceai_deployment" "production" {
+  app_id = spiceai_app.production.id
+
+  image_tag      = "v0.18.0"
+  replicas       = 5
+  debug          = false
+  branch         = "release/v1.0"
+  commit_sha     = "abc123def456789"
+  commit_message = "Production release v1.0"
 }
 ```
 
@@ -35,25 +133,29 @@ resource "spiceai_deployment" "example" {
 
 ### Required
 
-- `app_id` (String) The ID of the app to deploy.
+- `app_id` (String) The ID of the app to deploy. Changing this forces a new deployment to be created.
 
 ### Optional
 
-- `branch` (String) Git branch name associated with this deployment.
-- `commit_message` (String) Git commit message associated with this deployment.
-- `commit_sha` (String) Git commit SHA associated with this deployment.
-- `debug` (Boolean) Enable debug mode for this deployment.
-- `image_tag` (String) Override the Spice.ai runtime image tag for this deployment. If not specified, uses the app's configured image tag.
-- `replicas` (Number) Override the number of replicas for this deployment. Must be between 1 and 10. If not specified, uses the app's configured replicas.
+- `branch` (String) Git branch name associated with this deployment. Changing this forces a new deployment to be created.
+- `commit_message` (String) Git commit message associated with this deployment. Changing this forces a new deployment to be created.
+- `commit_sha` (String) Git commit SHA associated with this deployment. Changing this forces a new deployment to be created.
+- `debug` (Boolean) Enable debug mode for this deployment. Changing this forces a new deployment to be created.
+- `image_tag` (String) Override the Spice.ai runtime image tag for this deployment. If not specified, uses the app's configured image tag. Changing this forces a new deployment to be created.
+- `replicas` (Number) Override the number of replicas for this deployment. Must be between 1 and 10. If not specified, uses the app's configured replicas. Changing this forces a new deployment to be created.
+- `triggers` (Map of String) A map of arbitrary strings that, when changed, will force a new deployment to be created. Use this to trigger deployments based on external changes, such as spicepod configuration updates. Similar to `triggers` in `null_resource`.
 
 ### Read-Only
 
 - `created_at` (String) The timestamp when the deployment was created.
+- `created_by` (Number) The user ID who created the deployment.
+- `creation_source` (String) How the deployment was created (e.g., `api`, `dashboard`).
 - `error_message` (String) Error message if the deployment failed.
 - `finished_at` (String) The timestamp when the deployment finished.
 - `id` (String) The unique identifier of the deployment.
 - `started_at` (String) The timestamp when the deployment started running.
-- `status` (String) The current status of the deployment (queued, deploying, running, failed, stopped).
+- `status` (String) The current status of the deployment. Possible values: `queued`, `deploying`, `running`, `failed`, `stopped`.
+- `updated_at` (String) The timestamp when the deployment was last updated.
 
 ## Import
 

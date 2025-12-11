@@ -11,8 +11,6 @@ terraform {
 # Provider configuration
 provider "spiceai" {
   # Optional: Custom API endpoint (defaults to https://api.spice.ai)
-  # api_endpoint = "https://api.spice.ai"
-  # api_endpoint = "https://dev-api.spice.ai"
   api_endpoint = "http://localhost:8080"
 
   # Optional: Custom OAuth endpoint (defaults to https://spice.ai/api/oauth/token)
@@ -21,28 +19,34 @@ provider "spiceai" {
 }
 
 # Create a test app with full configuration
-# resource "spiceai_app" "test" {
-#   name        = "terraform-test-app-2"
-#   description = "Test app for Terraform provider validation"
-#   visibility  = "private"
+resource "spiceai_app" "test" {
+  name        = "terraform-test-app-local-1"
+  description = "Test app for Terraform provider validation"
+  visibility  = "private"
 
-#   # # Spicepod configuration
-#   # spicepod = <<-YAML
-#   #   version: v1beta1
-#   #   kind: Spicepod
-#   #   name: terraform-test-app
-#   #   datasets:
-#   #     - name: test_dataset
-#   #       from: s3://spiceai-demo-datasets/taxi_trips/2024/
-#   #       params:
-#   #         file_format: parquet
-#   # YAML
+  # Spicepod configuration from external file
+  spicepod = file("${path.module}/spicepod.yaml")
 
-#   # # Runtime configuration
-#   # image_tag         = "latest"
-#   # replicas          = 1
-#   # production_branch = "main"
-# }
+  # # Runtime configuration
+  image_tag = "1.10.0-enterprise-models"
+  replicas  = 1
+  # production_branch = "main"
+}
+
+resource "spiceai_deployment" "test" {
+  app_id = spiceai_app.test.id
+
+  # Trigger new deployment when app configuration changes
+  triggers = {
+    spicepod  = spiceai_app.test.spicepod
+    image_tag = spiceai_app.test.image_tag
+    replicas  = spiceai_app.test.replicas
+    image_tag = spiceai_app.test.image_tag
+  }
+
+  # Use app defaults
+  debug = false
+}
 
 # Outputs for verification
 # output "app_id" {
@@ -76,38 +80,38 @@ provider "spiceai" {
 #   sensitive   = true
 # }
 
-# Data source: List available regions
-data "spiceai_regions" "all" {}
+# # Data source: List available regions
+# data "spiceai_regions" "all" {}
 
-# Data source: List available container images
-data "spiceai_container_images" "stable" {
-  channel = "stable"
-}
-
-# Data source: Get API keys for the test app
-# data "spiceai_api_keys" "test" {
-#   app_id = spiceai_app.test.id
+# # Data source: List available container images
+# data "spiceai_container_images" "stable" {
+#   channel = "stable"
 # }
 
-output "available_regions" {
-  description = "List of available deployment regions"
-  value       = data.spiceai_regions.all.regions[*].region
-}
+# # Data source: Get API keys for the test app
+# # data "spiceai_api_keys" "test" {
+# #   app_id = spiceai_app.test.id
+# # }
 
-output "default_region" {
-  description = "The default deployment region"
-  value       = data.spiceai_regions.all.default
-}
+# output "available_regions" {
+#   description = "List of available deployment regions"
+#   value       = data.spiceai_regions.all.regions[*].region
+# }
 
-output "available_image_tags" {
-  description = "List of available container image tags"
-  value       = data.spiceai_container_images.stable.images[*].tag
-}
+# output "default_region" {
+#   description = "The default deployment region"
+#   value       = data.spiceai_regions.all.default
+# }
 
-output "default_image_tag" {
-  description = "The default container image tag"
-  value       = data.spiceai_container_images.stable.default
-}
+# output "available_image_tags" {
+#   description = "List of available container image tags"
+#   value       = data.spiceai_container_images.stable.images[*].tag
+# }
+
+# output "default_image_tag" {
+#   description = "The default container image tag"
+#   value       = data.spiceai_container_images.stable.default
+# }
 
 # output "api_key_primary" {
 #   description = "Primary API key for the test app"

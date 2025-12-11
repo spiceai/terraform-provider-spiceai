@@ -31,20 +31,41 @@ type SpiceAIProvider struct {
 
 // SpiceAIProviderModel describes the provider data model.
 type SpiceAIProviderModel struct {
-	ClientID      types.String `tfsdk:"client_id"`
-	ClientSecret  types.String `tfsdk:"client_secret"`
-	APIEndpoint   types.String `tfsdk:"api_endpoint"`
-	OAuthEndpoint types.String `tfsdk:"oauth_endpoint"`
+	ClientID               types.String `tfsdk:"client_id"`
+	ClientSecret           types.String `tfsdk:"client_secret"`
+	APIEndpoint            types.String `tfsdk:"api_endpoint"`
+	OAuthEndpoint          types.String `tfsdk:"oauth_endpoint"`
+	VercelProtectionBypass types.String `tfsdk:"vercel_protection_bypass"`
 }
 
 func (p *SpiceAIProvider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
 	resp.TypeName = "spiceai"
+
 	resp.Version = p.version
 }
 
 func (p *SpiceAIProvider) Schema(ctx context.Context, req provider.SchemaRequest, resp *provider.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "The Spice.ai provider allows you to manage Spice.ai resources such as apps and deployments.",
+		MarkdownDescription: `The Spice.ai provider allows you to manage Spice.ai Cloud resources.
+
+## Authentication
+
+The provider uses OAuth client credentials for authentication. You can obtain these from the Spice.ai Cloud portal.
+
+Credentials can be provided via:
+- Provider configuration block
+- Environment variables (recommended for CI/CD)
+
+## Example Usage
+
+` + "```hcl" + `
+provider "spiceai" {
+  # Credentials can also be set via environment variables:
+  # SPICEAI_CLIENT_ID and SPICEAI_CLIENT_SECRET
+  client_id     = var.spiceai_client_id
+  client_secret = var.spiceai_client_secret
+}
+` + "```",
 		Attributes: map[string]schema.Attribute{
 			"client_id": schema.StringAttribute{
 				MarkdownDescription: "The OAuth client ID for Spice.ai API authentication. Can also be set via the `SPICEAI_CLIENT_ID` environment variable.",
@@ -63,6 +84,11 @@ func (p *SpiceAIProvider) Schema(ctx context.Context, req provider.SchemaRequest
 				MarkdownDescription: "The Spice.ai OAuth token endpoint. Defaults to `https://spice.ai/api/oauth/token`. Can also be set via the `SPICEAI_OAUTH_ENDPOINT` environment variable.",
 				Optional:            true,
 			},
+			"vercel_protection_bypass": schema.StringAttribute{
+				MarkdownDescription: "Optional bypass token for Vercel deployment protection. When set, adds the `x-vercel-protection-bypass` header to API requests. Can also be set via the `SPICEAI_VERCEL_PROTECTION_BYPASS` environment variable.",
+				Optional:            true,
+				Sensitive:           true,
+			},
 		},
 	}
 }
@@ -71,43 +97,16 @@ func (p *SpiceAIProvider) Configure(ctx context.Context, req provider.ConfigureR
 	var data SpiceAIProviderModel
 
 	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
-
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
 	// Get values from config or environment variables
-	var clientID string
-	if !data.ClientID.IsNull() && !data.ClientID.IsUnknown() {
-		clientID = data.ClientID.ValueString()
-	}
-	if clientID == "" {
-		clientID = os.Getenv("SPICEAI_CLIENT_ID")
-	}
-
-	var clientSecret string
-	if !data.ClientSecret.IsNull() && !data.ClientSecret.IsUnknown() {
-		clientSecret = data.ClientSecret.ValueString()
-	}
-	if clientSecret == "" {
-		clientSecret = os.Getenv("SPICEAI_CLIENT_SECRET")
-	}
-
-	var apiEndpoint string
-	if !data.APIEndpoint.IsNull() && !data.APIEndpoint.IsUnknown() {
-		apiEndpoint = data.APIEndpoint.ValueString()
-	}
-	if apiEndpoint == "" {
-		apiEndpoint = os.Getenv("SPICEAI_API_ENDPOINT")
-	}
-
-	var oauthEndpoint string
-	if !data.OAuthEndpoint.IsNull() && !data.OAuthEndpoint.IsUnknown() {
-		oauthEndpoint = data.OAuthEndpoint.ValueString()
-	}
-	if oauthEndpoint == "" {
-		oauthEndpoint = os.Getenv("SPICEAI_OAUTH_ENDPOINT")
-	}
+	clientID := getConfigValue(data.ClientID, "SPICEAI_CLIENT_ID")
+	clientSecret := getConfigValue(data.ClientSecret, "SPICEAI_CLIENT_SECRET")
+	apiEndpoint := getConfigValue(data.APIEndpoint, "SPICEAI_API_ENDPOINT")
+	oauthEndpoint := getConfigValue(data.OAuthEndpoint, "SPICEAI_OAUTH_ENDPOINT")
+	vercelProtectionBypass := getConfigValue(data.VercelProtectionBypass, "SPICEAI_VERCEL_PROTECTION_BYPASS")
 
 	// Validate required configuration
 	if clientID == "" {
@@ -131,7 +130,7 @@ func (p *SpiceAIProvider) Configure(ctx context.Context, req provider.ConfigureR
 	}
 
 	// Create the Spice.ai API client
-	spiceClient := client.NewSpiceAIClient(clientID, clientSecret, apiEndpoint, oauthEndpoint)
+	spiceClient := client.NewSpiceAIClient(clientID, clientSecret, apiEndpoint, oauthEndpoint, vercelProtectionBypass)
 
 	// Make the client available to resources and data sources
 	resp.DataSourceData = spiceClient
@@ -141,7 +140,6 @@ func (p *SpiceAIProvider) Configure(ctx context.Context, req provider.ConfigureR
 func (p *SpiceAIProvider) Resources(ctx context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
 		NewAppResource,
-		NewAppConfigResource,
 		NewDeploymentResource,
 	}
 }
@@ -150,6 +148,9 @@ func (p *SpiceAIProvider) DataSources(ctx context.Context) []func() datasource.D
 	return []func() datasource.DataSource{
 		NewAppDataSource,
 		NewAppsDataSource,
+		NewRegionsDataSource,
+		NewContainerImagesDataSource,
+		NewAPIKeysDataSource,
 	}
 }
 
@@ -163,4 +164,12 @@ func New(version string) func() provider.Provider {
 			version: version,
 		}
 	}
+}
+
+// getConfigValue returns the value from the config if set, otherwise from the environment variable.
+func getConfigValue(configValue types.String, envVar string) string {
+	if !configValue.IsNull() && !configValue.IsUnknown() {
+		return configValue.ValueString()
+	}
+	return os.Getenv(envVar)
 }

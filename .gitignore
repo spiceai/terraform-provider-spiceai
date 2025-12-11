@@ -35,3 +35,6 @@ website/vendor
 *.winfile eol=crlf
 
 .env
+
+# binary
+terraform-provider-spiceai

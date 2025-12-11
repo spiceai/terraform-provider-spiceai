@@ -23,11 +23,12 @@ const (
 
 // SpiceAIClient is the client for interacting with the Spice.ai API.
 type SpiceAIClient struct {
-	httpClient    *http.Client
-	apiEndpoint   string
-	oauthEndpoint string
-	clientID      string
-	clientSecret  string
+	httpClient             *http.Client
+	apiEndpoint            string
+	oauthEndpoint          string
+	clientID               string
+	clientSecret           string
+	vercelProtectionBypass string
 
 	// Token management
 	accessToken string
@@ -43,7 +44,7 @@ type TokenResponse struct {
 }
 
 // NewSpiceAIClient creates a new Spice.ai API client.
-func NewSpiceAIClient(clientID, clientSecret, apiEndpoint, oauthEndpoint string) *SpiceAIClient {
+func NewSpiceAIClient(clientID, clientSecret, apiEndpoint, oauthEndpoint, vercelProtectionBypass string) *SpiceAIClient {
 	if apiEndpoint == "" {
 		apiEndpoint = DefaultAPIEndpoint
 	}
@@ -55,10 +56,11 @@ func NewSpiceAIClient(clientID, clientSecret, apiEndpoint, oauthEndpoint string)
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
 		},
-		apiEndpoint:   strings.TrimSuffix(apiEndpoint, "/"),
-		oauthEndpoint: oauthEndpoint,
-		clientID:      clientID,
-		clientSecret:  clientSecret,
+		apiEndpoint:            strings.TrimSuffix(apiEndpoint, "/"),
+		oauthEndpoint:          oauthEndpoint,
+		clientID:               clientID,
+		clientSecret:           clientSecret,
+		vercelProtectionBypass: vercelProtectionBypass,
 	}
 }
 
@@ -142,6 +144,9 @@ func (c *SpiceAIClient) doRequest(ctx context.Context, method, path string, body
 	req.Header.Set("Authorization", "Bearer "+token)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
+	if c.vercelProtectionBypass != "" {
+		req.Header.Set("x-vercel-protection-bypass", c.vercelProtectionBypass)
+	}
 
 	return c.httpClient.Do(req)
 }
@@ -154,6 +159,7 @@ type App struct {
 	Visibility       string     `json:"visibility,omitempty"`
 	CreatedAt        string     `json:"created_at,omitempty"`
 	Region           string     `json:"region,omitempty"`
+	ClusterID        string     `json:"cluster_id,omitempty"`
 	ProductionBranch string     `json:"production_branch,omitempty"`
 	APIKey           string     `json:"api_key,omitempty"`
 	Config           *AppConfig `json:"config,omitempty"`
@@ -164,6 +170,7 @@ type AppConfig struct {
 	Spicepod           interface{} `json:"spicepod,omitempty"`
 	ImageTag           string      `json:"image_tag,omitempty"`
 	Replicas           int         `json:"replicas,omitempty"`
+	Region             string      `json:"region,omitempty"`
 	NodeGroup          string      `json:"node_group,omitempty"`
 	StorageClaimSizeGB float64     `json:"storage_claim_size_gb,omitempty"`
 }
@@ -193,14 +200,17 @@ type Deployment struct {
 	ID             int64  `json:"id"`
 	Status         string `json:"status"`
 	CreatedAt      string `json:"created_at,omitempty"`
+	UpdatedAt      string `json:"updated_at,omitempty"`
 	StartedAt      string `json:"started_at,omitempty"`
 	FinishedAt     string `json:"finished_at,omitempty"`
 	ImageTag       string `json:"image_tag,omitempty"`
 	Replicas       int    `json:"replicas,omitempty"`
+	Branch         string `json:"branch,omitempty"`
 	CommitSHA      string `json:"commit_sha,omitempty"`
 	CommitMessage  string `json:"commit_message,omitempty"`
 	ErrorMessage   string `json:"error_message,omitempty"`
 	CreationSource string `json:"creation_source,omitempty"`
+	CreatedBy      int64  `json:"created_by,omitempty"`
 }
 
 // CreateDeploymentRequest represents the request to create a deployment.
@@ -221,6 +231,41 @@ type AppsResponse struct {
 // DeploymentsResponse represents the response from listing deployments.
 type DeploymentsResponse struct {
 	Deployments []Deployment `json:"deployments"`
+}
+
+// Region represents a deployment region.
+type Region struct {
+	Name         string `json:"name"`
+	Region       string `json:"region"`
+	Provider     string `json:"provider"`
+	ProviderName string `json:"providerName"`
+	IsDefault    bool   `json:"isDefault"`
+	CName        string `json:"cname"`
+}
+
+// RegionsResponse represents the response from listing regions.
+type RegionsResponse struct {
+	Regions []Region `json:"regions"`
+	Default string   `json:"default"`
+}
+
+// ContainerImage represents a container image.
+type ContainerImage struct {
+	Name    string `json:"name"`
+	Tag     string `json:"tag"`
+	Channel string `json:"channel"`
+}
+
+// ContainerImagesResponse represents the response from listing container images.
+type ContainerImagesResponse struct {
+	Images  []ContainerImage `json:"images"`
+	Default string           `json:"default"`
+}
+
+// APIKeys represents the API keys for an app.
+type APIKeys struct {
+	APIKey  string `json:"api_key"`
+	APIKey2 string `json:"api_key_2"`
 }
 
 // CreateApp creates a new app.
@@ -399,4 +444,77 @@ func (c *SpiceAIClient) ListDeployments(ctx context.Context, appID int64, limit 
 	}
 
 	return deploymentsResp.Deployments, nil
+}
+
+// ListRegions lists available deployment regions.
+func (c *SpiceAIClient) ListRegions(ctx context.Context, env string) (*RegionsResponse, error) {
+	path := "/v1/regions"
+	if env != "" {
+		path += "?env=" + url.QueryEscape(env)
+	}
+
+	resp, err := c.doRequest(ctx, "GET", path, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("failed to list regions: status %d: %s", resp.StatusCode, string(body))
+	}
+
+	var regionsResp RegionsResponse
+	if err := json.NewDecoder(resp.Body).Decode(&regionsResp); err != nil {
+		return nil, fmt.Errorf("failed to decode regions response: %w", err)
+	}
+
+	return &regionsResp, nil
+}
+
+// ListContainerImages lists available container images.
+func (c *SpiceAIClient) ListContainerImages(ctx context.Context, channel string) (*ContainerImagesResponse, error) {
+	path := "/v1/container-images"
+	if channel != "" {
+		path += "?channel=" + url.QueryEscape(channel)
+	}
+
+	resp, err := c.doRequest(ctx, "GET", path, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("failed to list container images: status %d: %s", resp.StatusCode, string(body))
+	}
+
+	var imagesResp ContainerImagesResponse
+	if err := json.NewDecoder(resp.Body).Decode(&imagesResp); err != nil {
+		return nil, fmt.Errorf("failed to decode container images response: %w", err)
+	}
+
+	return &imagesResp, nil
+}
+
+// GetAPIKeys retrieves the API keys for an app.
+func (c *SpiceAIClient) GetAPIKeys(ctx context.Context, appID int64) (*APIKeys, error) {
+	resp, err := c.doRequest(ctx, "GET", fmt.Sprintf("/v1/apps/%d/api-keys", appID), nil)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("failed to get API keys: status %d: %s", resp.StatusCode, string(body))
+	}
+
+	var apiKeys APIKeys
+	if err := json.NewDecoder(resp.Body).Decode(&apiKeys); err != nil {
+		return nil, fmt.Errorf("failed to decode API keys response: %w", err)
+	}
+
+	return &apiKeys, nil
 }
