@@ -148,6 +148,9 @@ func (p *SpiceAIProvider) DataSources(ctx context.Context) []func() datasource.D
 	return []func() datasource.DataSource{
 		NewAppDataSource,
 		NewAppsDataSource,
+		NewRegionsDataSource,
+		NewContainerImagesDataSource,
+		NewAPIKeysDataSource,
 	}
 }
 

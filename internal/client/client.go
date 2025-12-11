@@ -233,6 +233,41 @@ type DeploymentsResponse struct {
 	Deployments []Deployment `json:"deployments"`
 }
 
+// Region represents a deployment region.
+type Region struct {
+	Name         string `json:"name"`
+	Region       string `json:"region"`
+	Provider     string `json:"provider"`
+	ProviderName string `json:"providerName"`
+	IsDefault    bool   `json:"isDefault"`
+	CName        string `json:"cname"`
+}
+
+// RegionsResponse represents the response from listing regions.
+type RegionsResponse struct {
+	Regions []Region `json:"regions"`
+	Default string   `json:"default"`
+}
+
+// ContainerImage represents a container image.
+type ContainerImage struct {
+	Name    string `json:"name"`
+	Tag     string `json:"tag"`
+	Channel string `json:"channel"`
+}
+
+// ContainerImagesResponse represents the response from listing container images.
+type ContainerImagesResponse struct {
+	Images  []ContainerImage `json:"images"`
+	Default string           `json:"default"`
+}
+
+// APIKeys represents the API keys for an app.
+type APIKeys struct {
+	APIKey  string `json:"api_key"`
+	APIKey2 string `json:"api_key_2"`
+}
+
 // CreateApp creates a new app.
 func (c *SpiceAIClient) CreateApp(ctx context.Context, req *CreateAppRequest) (*App, error) {
 	resp, err := c.doRequest(ctx, "POST", "/v1/apps", req)
@@ -409,4 +444,77 @@ func (c *SpiceAIClient) ListDeployments(ctx context.Context, appID int64, limit 
 	}
 
 	return deploymentsResp.Deployments, nil
+}
+
+// ListRegions lists available deployment regions.
+func (c *SpiceAIClient) ListRegions(ctx context.Context, env string) (*RegionsResponse, error) {
+	path := "/v1/regions"
+	if env != "" {
+		path += "?env=" + url.QueryEscape(env)
+	}
+
+	resp, err := c.doRequest(ctx, "GET", path, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("failed to list regions: status %d: %s", resp.StatusCode, string(body))
+	}
+
+	var regionsResp RegionsResponse
+	if err := json.NewDecoder(resp.Body).Decode(&regionsResp); err != nil {
+		return nil, fmt.Errorf("failed to decode regions response: %w", err)
+	}
+
+	return &regionsResp, nil
+}
+
+// ListContainerImages lists available container images.
+func (c *SpiceAIClient) ListContainerImages(ctx context.Context, channel string) (*ContainerImagesResponse, error) {
+	path := "/v1/container-images"
+	if channel != "" {
+		path += "?channel=" + url.QueryEscape(channel)
+	}
+
+	resp, err := c.doRequest(ctx, "GET", path, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("failed to list container images: status %d: %s", resp.StatusCode, string(body))
+	}
+
+	var imagesResp ContainerImagesResponse
+	if err := json.NewDecoder(resp.Body).Decode(&imagesResp); err != nil {
+		return nil, fmt.Errorf("failed to decode container images response: %w", err)
+	}
+
+	return &imagesResp, nil
+}
+
+// GetAPIKeys retrieves the API keys for an app.
+func (c *SpiceAIClient) GetAPIKeys(ctx context.Context, appID int64) (*APIKeys, error) {
+	resp, err := c.doRequest(ctx, "GET", fmt.Sprintf("/v1/apps/%d/api-keys", appID), nil)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("failed to get API keys: status %d: %s", resp.StatusCode, string(body))
+	}
+
+	var apiKeys APIKeys
+	if err := json.NewDecoder(resp.Body).Decode(&apiKeys); err != nil {
+		return nil, fmt.Errorf("failed to decode API keys response: %w", err)
+	}
+
+	return &apiKeys, nil
 }
