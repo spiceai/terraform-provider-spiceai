@@ -7,3 +7,7 @@ datasets:
     from: s3://spiceai-demo-datasets/taxi_trips/2024/
     params:
       file_format: parquet
+  - name: test_dataset_3
+    from: s3://spiceai-demo-datasets/taxi_trips/2024/
+    params:
+      file_format: parquet
