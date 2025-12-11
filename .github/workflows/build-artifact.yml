@@ -1,0 +1,70 @@
+# Build and upload provider artifact on merge to trunk
+name: Build Artifact
+
+on:
+  pull_request:
+
+  push:
+    branches:
+      - trunk
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build Provider
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+          - goos: linux
+            goarch: arm64
+          - goos: darwin
+            goarch: amd64
+          - goos: darwin
+            goarch: arm64
+    steps:
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+      - uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c # v6.1.0
+        with:
+          go-version-file: 'go.mod'
+          cache: true
+
+      - name: Build provider
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: '0'
+        run: |
+          go build -trimpath -ldflags="-s -w" -o terraform-provider-spiceai_${{ matrix.goos }}_${{ matrix.goarch }} .
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+        with:
+          name: terraform-provider-spiceai_${{ matrix.goos }}_${{ matrix.goarch }}
+          path: terraform-provider-spiceai_${{ matrix.goos }}_${{ matrix.goarch }}
+          retention-days: 90
+
+  # Combine all platform artifacts into a single artifact for convenience
+  combine:
+    name: Combine Artifacts
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
+        with:
+          path: artifacts
+          pattern: terraform-provider-spiceai_*
+          merge-multiple: true
+
+      - name: Upload combined artifact
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+        with:
+          name: terraform-provider-spiceai
+          path: artifacts/
+          retention-days: 90
