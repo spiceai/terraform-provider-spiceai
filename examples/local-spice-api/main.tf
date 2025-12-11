@@ -18,14 +18,22 @@ provider "spiceai" {
   oauth_endpoint = "https://dev.spice.ai/api/oauth/token"
 }
 
+
+# Local values
+locals {
+  app_name = "terraform-test-app-local-2"
+}
+
 # Create a test app with full configuration
 resource "spiceai_app" "test" {
-  name        = "terraform-test-app-local-2"
+  name        = local.app_name
   description = "Test app for Terraform provider validation, updated description"
   visibility  = "private"
 
-  # Spicepod configuration from external file
-  spicepod = file("${path.module}/spicepod.yaml")
+  # Spicepod configuration from template file with app name
+  spicepod = templatefile("${path.module}/spicepod.yaml.tftpl", {
+    app_name = local.app_name
+  })
 
   # # Runtime configuration
   image_tag = "1.10.0-enterprise-models"

@@ -1,0 +1,15 @@
+# Spicepod configuration for Terraform E2E tests
+# This is a minimal configuration used to validate the Management API
+
+version: v1beta1
+kind: Spicepod
+name: ${app_name}
+
+metadata:
+  description: E2E test spicepod for Terraform provider validation
+
+datasets:
+  - name: taxi_trips
+    from: s3://spiceai-demo-datasets/taxi_trips/2024/
+    params:
+      file_format: parquet
