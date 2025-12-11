@@ -141,6 +141,8 @@ func (p *SpiceAIProvider) Resources(ctx context.Context) []func() resource.Resou
 	return []func() resource.Resource{
 		NewAppResource,
 		NewDeploymentResource,
+		NewSecretResource,
+		NewMemberResource,
 	}
 }
 
@@ -151,6 +153,8 @@ func (p *SpiceAIProvider) DataSources(ctx context.Context) []func() datasource.D
 		NewRegionsDataSource,
 		NewContainerImagesDataSource,
 		NewAPIKeysDataSource,
+		NewSecretsDataSource,
+		NewMembersDataSource,
 	}
 }
 
