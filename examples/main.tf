@@ -58,6 +58,30 @@ resource "spiceai_deployment" "example" {
   # commit_message = "Deploy via Terraform"
 }
 
+# Create secrets for the app
+resource "spiceai_secret" "database_password" {
+  app_id = spiceai_app.example.id
+  name   = "DATABASE_PASSWORD"
+  value  = var.database_password
+}
+
+resource "spiceai_secret" "api_token" {
+  app_id = spiceai_app.example.id
+  name   = "EXTERNAL_API_TOKEN"
+  value  = var.api_token
+}
+
+# Add members to the organization
+resource "spiceai_member" "developer" {
+  username = "johndoe"
+  roles    = ["member"]
+}
+
+resource "spiceai_member" "admin" {
+  username = "janedoe"
+  roles    = ["admin", "member"]
+}
+
 # Data source: Get details about an existing app by ID
 data "spiceai_app" "existing" {
   id = spiceai_app.example.id
@@ -65,6 +89,21 @@ data "spiceai_app" "existing" {
 
 # Data source: List all apps in the organization
 data "spiceai_apps" "all" {}
+
+# Variables for sensitive values
+variable "database_password" {
+  type        = string
+  description = "Database password for the app"
+  sensitive   = true
+  default     = ""
+}
+
+variable "api_token" {
+  type        = string
+  description = "External API token for the app"
+  sensitive   = true
+  default     = ""
+}
 
 # Outputs
 output "app_id" {
@@ -91,4 +130,20 @@ output "deployment_status" {
 output "all_apps" {
   description = "List of all apps in the organization"
   value       = [for app in data.spiceai_apps.all.apps : app.name]
+}
+
+output "secret_ids" {
+  description = "The IDs of the created secrets"
+  value = {
+    database_password = spiceai_secret.database_password.id
+    api_token         = spiceai_secret.api_token.id
+  }
+}
+
+output "member_ids" {
+  description = "The user IDs of added members"
+  value = {
+    developer = spiceai_member.developer.user_id
+    admin     = spiceai_member.admin.user_id
+  }
 }

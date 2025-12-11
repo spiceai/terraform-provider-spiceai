@@ -592,6 +592,282 @@
         "tags": ["Apps"]
       }
     },
+    "/v1/apps/{appId}/secrets/{secretName}": {
+      "get": {
+        "summary": "Get a secret by name",
+        "description": "Returns a specific secret by name. The value is masked.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "appId",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "The ID of the app"
+          },
+          {
+            "in": "path",
+            "name": "secretName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The name of the secret"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Secret details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "value": {
+                      "type": "string",
+                      "description": "Always masked with asterisks"
+                    },
+                    "created_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updated_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Insufficient scope"
+          },
+          "404": {
+            "description": "App or secret not found"
+          }
+        },
+        "tags": ["Secrets"]
+      },
+      "delete": {
+        "summary": "Delete a secret",
+        "description": "Deletes a secret by name.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "appId",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "The ID of the app"
+          },
+          {
+            "in": "path",
+            "name": "secretName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The name of the secret"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Secret deleted successfully"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Insufficient scope"
+          },
+          "404": {
+            "description": "App or secret not found"
+          }
+        },
+        "tags": ["Secrets"]
+      }
+    },
+    "/v1/apps/{appId}/secrets": {
+      "get": {
+        "summary": "List app secrets",
+        "description": "Returns a list of secrets for the specified app. Secret values are masked.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "appId",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "The ID of the app"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of secrets",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "secrets": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "value": {
+                            "type": "string",
+                            "description": "Always masked with asterisks"
+                          },
+                          "created_at": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "updated_at": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Insufficient scope"
+          },
+          "404": {
+            "description": "App not found"
+          }
+        },
+        "tags": ["Secrets"]
+      },
+      "post": {
+        "summary": "Create or update a secret",
+        "description": "Creates a new secret or updates an existing one with the same name.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "appId",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "The ID of the app"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "value"],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$",
+                    "description": "Secret name (must start with letter or underscore)"
+                  },
+                  "value": {
+                    "type": "string",
+                    "description": "Secret value (will be encrypted)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Secret created or updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "value": {
+                      "type": "string",
+                      "description": "Always masked with asterisks"
+                    },
+                    "created_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updated_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Insufficient scope"
+          },
+          "404": {
+            "description": "App not found"
+          }
+        },
+        "tags": ["Secrets"]
+      }
+    },
     "/v1/apps": {
       "get": {
         "summary": "List apps",
@@ -806,6 +1082,328 @@
           }
         },
         "tags": ["Health"]
+      }
+    },
+    "/v1/members/{memberId}": {
+      "get": {
+        "summary": "Get member details",
+        "description": "Returns details for a specific organization member.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "memberId",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "The user ID of the member"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Member details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "user_id": {
+                      "type": "integer"
+                    },
+                    "username": {
+                      "type": "string"
+                    },
+                    "roles": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "is_owner": {
+                      "type": "boolean"
+                    },
+                    "created_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Insufficient scope"
+          },
+          "404": {
+            "description": "Member not found"
+          }
+        },
+        "tags": ["Members"]
+      },
+      "patch": {
+        "summary": "Update member roles",
+        "description": "Updates the roles of a specific organization member.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "memberId",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "The user ID of the member"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["roles"],
+                "properties": {
+                  "roles": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "New roles to assign to the member"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Member updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "user_id": {
+                      "type": "integer"
+                    },
+                    "username": {
+                      "type": "string"
+                    },
+                    "roles": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "created_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Insufficient scope or cannot modify owner"
+          },
+          "404": {
+            "description": "Member not found"
+          }
+        },
+        "tags": ["Members"]
+      },
+      "delete": {
+        "summary": "Remove a member",
+        "description": "Removes a member from the organization (soft delete).",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "memberId",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "The user ID of the member"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Member removed successfully"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Insufficient scope or cannot remove owner"
+          },
+          "404": {
+            "description": "Member not found"
+          }
+        },
+        "tags": ["Members"]
+      }
+    },
+    "/v1/members": {
+      "get": {
+        "summary": "List organization members",
+        "description": "Returns a list of members in the authenticated organization.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of members",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "members": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "user_id": {
+                            "type": "integer"
+                          },
+                          "username": {
+                            "type": "string"
+                          },
+                          "roles": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "is_owner": {
+                            "type": "boolean"
+                          },
+                          "created_at": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Insufficient scope"
+          }
+        },
+        "tags": ["Members"]
+      },
+      "post": {
+        "summary": "Add a member to the organization",
+        "description": "Adds a new member to the organization with specified roles.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["username"],
+                "properties": {
+                  "username": {
+                    "type": "string",
+                    "description": "The username of the user to add"
+                  },
+                  "roles": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Roles to assign to the member",
+                    "default": ["member"]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Member added successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "user_id": {
+                      "type": "integer"
+                    },
+                    "username": {
+                      "type": "string"
+                    },
+                    "roles": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "created_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Insufficient scope"
+          },
+          "404": {
+            "description": "User not found"
+          },
+          "409": {
+            "description": "User is already a member"
+          }
+        },
+        "tags": ["Members"]
       }
     },
     "/v1/regions": {

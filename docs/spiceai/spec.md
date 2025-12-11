@@ -20,8 +20,11 @@ This document provides the complete specification for the Spice AI Management AP
    - [Apps](#apps)
    - [Deployments](#deployments)
    - [API Keys](#api-keys)
+   - [Secrets](#secrets)
+   - [Members](#members)
    - [Regions](#regions)
    - [Container Images](#container-images)
+   - [Health](#health)
 7. [Common Patterns](#common-patterns)
 8. [Terraform Provider Usage](#terraform-provider-usage)
 
@@ -98,6 +101,9 @@ Scopes control what operations a token can perform.
 | `config:write` | Update app configuration | `config:read` |
 | `secrets:read` | Read secrets (sensitive) | - |
 | `secrets:write` | Create and update secrets (sensitive) | `secrets:read` |
+| `members:read` | Read organization members | - |
+| `members:write` | Add and update members | `members:read` |
+| `members:delete` | Remove members | `members:read`, `members:write` |
 | `*` | Full access to all operations | All scopes |
 
 ### Scope Hierarchy
@@ -683,6 +689,398 @@ Regenerates an API key. The previous key is immediately invalidated.
 
 ---
 
+### Secrets
+
+Secrets store sensitive configuration values (API keys, passwords, connection strings) for use in your Spicepod configuration. Secret values are encrypted at rest and masked in API responses.
+
+#### Secret Object
+
+```json
+{
+  "id": 456,
+  "name": "DATABASE_PASSWORD",
+  "value": "********",
+  "created_at": "2024-01-15T10:30:00Z",
+  "updated_at": "2024-01-15T10:30:00Z"
+}
+```
+
+#### Secret Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | integer | Unique secret identifier |
+| `name` | string | Secret name (must start with letter or underscore) |
+| `value` | string | Secret value (always masked in responses) |
+| `created_at` | string | ISO 8601 creation timestamp |
+| `updated_at` | string | ISO 8601 last update timestamp |
+
+---
+
+#### List Secrets
+
+```
+GET /v1/apps/{appId}/secrets
+```
+
+Returns all secrets for the specified app. Secret values are masked.
+
+**Required Scope:** `secrets:read`
+
+**Path Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `appId` | integer | The app ID |
+
+**Response:** `200 OK`
+
+```json
+{
+  "secrets": [
+    {
+      "id": 456,
+      "name": "DATABASE_PASSWORD",
+      "value": "********",
+      "created_at": "2024-01-15T10:30:00Z",
+      "updated_at": "2024-01-15T10:30:00Z"
+    },
+    {
+      "id": 457,
+      "name": "API_TOKEN",
+      "value": "********",
+      "created_at": "2024-01-15T11:00:00Z",
+      "updated_at": "2024-01-15T11:00:00Z"
+    }
+  ]
+}
+```
+
+---
+
+#### Get Secret
+
+```
+GET /v1/apps/{appId}/secrets/{secretName}
+```
+
+Returns a specific secret by name. The value is masked.
+
+**Required Scope:** `secrets:read`
+
+**Path Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `appId` | integer | The app ID |
+| `secretName` | string | The secret name |
+
+**Response:** `200 OK`
+
+```json
+{
+  "id": 456,
+  "name": "DATABASE_PASSWORD",
+  "value": "********",
+  "created_at": "2024-01-15T10:30:00Z",
+  "updated_at": "2024-01-15T10:30:00Z"
+}
+```
+
+---
+
+#### Create or Update Secret
+
+```
+POST /v1/apps/{appId}/secrets
+```
+
+Creates a new secret or updates an existing one with the same name.
+
+**Required Scope:** `secrets:write`
+
+**Path Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `appId` | integer | The app ID |
+
+**Request Body:**
+
+| Field | Type | Required | Constraints | Description |
+|-------|------|----------|-------------|-------------|
+| `name` | string | Yes | Pattern: `^[a-zA-Z_][a-zA-Z0-9_]*$` | Secret name |
+| `value` | string | Yes | - | Secret value (will be encrypted) |
+
+**Example Request:**
+
+```json
+{
+  "name": "DATABASE_PASSWORD",
+  "value": "my-secure-password-123"
+}
+```
+
+**Response:** `200 OK`
+
+```json
+{
+  "id": 456,
+  "name": "DATABASE_PASSWORD",
+  "value": "********",
+  "created_at": "2024-01-15T10:30:00Z",
+  "updated_at": "2024-01-15T10:30:00Z"
+}
+```
+
+**Error Responses:**
+
+| Status | Condition |
+|--------|-----------|
+| `400` | Invalid secret name format |
+| `404` | App not found |
+
+---
+
+#### Delete Secret
+
+```
+DELETE /v1/apps/{appId}/secrets/{secretName}
+```
+
+Deletes a secret by name.
+
+**Required Scope:** `secrets:write`
+
+**Path Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `appId` | integer | The app ID |
+| `secretName` | string | The secret name |
+
+**Response:** `204 No Content`
+
+---
+
+### Members
+
+Members represent users belonging to an organization. The Members API allows you to manage organization membership and roles programmatically.
+
+#### Member Object
+
+```json
+{
+  "user_id": 123,
+  "username": "johndoe",
+  "roles": ["admin", "member"],
+  "is_owner": false,
+  "created_at": "2024-01-15T10:30:00Z"
+}
+```
+
+#### Member Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `user_id` | integer | Unique user identifier |
+| `username` | string | User's username |
+| `roles` | array | List of assigned roles |
+| `is_owner` | boolean | Whether the member is the organization owner |
+| `created_at` | string | ISO 8601 timestamp when member joined |
+
+---
+
+#### List Members
+
+```
+GET /v1/members
+```
+
+Returns all members in the authenticated organization.
+
+**Required Scope:** `members:read`
+
+**Response:** `200 OK`
+
+```json
+{
+  "members": [
+    {
+      "user_id": 123,
+      "username": "johndoe",
+      "roles": ["admin", "member"],
+      "is_owner": true,
+      "created_at": "2024-01-10T08:00:00Z"
+    },
+    {
+      "user_id": 456,
+      "username": "janedoe",
+      "roles": ["member"],
+      "is_owner": false,
+      "created_at": "2024-01-15T10:30:00Z"
+    }
+  ]
+}
+```
+
+---
+
+#### Get Member
+
+```
+GET /v1/members/{memberId}
+```
+
+Returns details for a specific organization member.
+
+**Required Scope:** `members:read`
+
+**Path Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `memberId` | integer | The user ID of the member |
+
+**Response:** `200 OK`
+
+```json
+{
+  "user_id": 456,
+  "username": "janedoe",
+  "roles": ["member"],
+  "is_owner": false,
+  "created_at": "2024-01-15T10:30:00Z"
+}
+```
+
+---
+
+#### Add Member
+
+```
+POST /v1/members
+```
+
+Adds a new member to the organization with specified roles.
+
+**Required Scope:** `members:write`
+
+**Request Body:**
+
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `username` | string | Yes | - | Username of the user to add |
+| `roles` | array | No | `["member"]` | Roles to assign to the member |
+
+**Example Request:**
+
+```json
+{
+  "username": "newuser",
+  "roles": ["member"]
+}
+```
+
+**Response:** `201 Created`
+
+```json
+{
+  "user_id": 789,
+  "username": "newuser",
+  "roles": ["member"],
+  "created_at": "2024-01-20T14:00:00Z"
+}
+```
+
+**Error Responses:**
+
+| Status | Condition |
+|--------|-----------|
+| `400` | Invalid request body |
+| `404` | User not found |
+| `409` | User is already a member |
+
+---
+
+#### Update Member Roles
+
+```
+PATCH /v1/members/{memberId}
+```
+
+Updates the roles of a specific organization member.
+
+**Required Scope:** `members:write`
+
+**Path Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `memberId` | integer | The user ID of the member |
+
+**Request Body:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `roles` | array | Yes | New roles to assign to the member |
+
+**Example Request:**
+
+```json
+{
+  "roles": ["admin", "member"]
+}
+```
+
+**Response:** `200 OK`
+
+```json
+{
+  "user_id": 456,
+  "username": "janedoe",
+  "roles": ["admin", "member"],
+  "created_at": "2024-01-15T10:30:00Z"
+}
+```
+
+**Error Responses:**
+
+| Status | Condition |
+|--------|-----------|
+| `400` | Invalid request body |
+| `403` | Cannot modify organization owner |
+| `404` | Member not found |
+
+---
+
+#### Remove Member
+
+```
+DELETE /v1/members/{memberId}
+```
+
+Removes a member from the organization (soft delete).
+
+**Required Scope:** `members:delete`
+
+**Path Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `memberId` | integer | The user ID of the member |
+
+**Response:** `204 No Content`
+
+**Error Responses:**
+
+| Status | Condition |
+|--------|-----------|
+| `403` | Cannot remove organization owner |
+| `404` | Member not found |
+
+---
+
 ### Regions
 
 Regions define where apps can be deployed.
@@ -916,6 +1314,8 @@ resource "spiceai_deployment" "example" {
 | `spiceai_app` | `POST/GET/PUT/DELETE /v1/apps/{appId}` |
 | `spiceai_deployment` | `POST/GET /v1/apps/{appId}/deployments` |
 | `spiceai_app_api_key` | `GET/POST /v1/apps/{appId}/api-keys` |
+| `spiceai_secret` | `GET/POST/DELETE /v1/apps/{appId}/secrets` |
+| `spiceai_member` | `GET/POST/PATCH/DELETE /v1/members` |
 
 ### Import Existing Resources
 
@@ -1017,3 +1417,35 @@ GET /v1/docs
 ```
 
 This returns the JSON OpenAPI document that can be used with code generators and API tools.
+
+**Source locations:**
+- Generated spec: `apps/api/.schema/openapi.json`
+- Route handlers: `apps/api/app/v1/*/route.ts`
+
+The OpenAPI spec is generated from JSDoc `@swagger` annotations in the route handlers.
+
+---
+
+## Changelog
+
+### 2025-12-11
+
+- Added Members API for organization member management
+- Added Secrets API for app secret management
+- New scopes: `members:read`, `members:write`, `members:delete`
+
+### 2025-12-10
+
+- Initial API release
+- App CRUD operations
+- Deployment management
+- API key management
+- Region and container image listing
+- OAuth 2.0 authentication
+
+---
+
+## Support
+
+- Documentation: https://docs.spice.ai
+- GitHub Issues: https://github.com/spiceai/spiceai/issues

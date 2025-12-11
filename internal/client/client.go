@@ -268,6 +268,51 @@ type APIKeys struct {
 	APIKey2 string `json:"api_key_2"`
 }
 
+// Secret represents a Spice.ai app secret.
+type Secret struct {
+	ID        int64  `json:"id"`
+	Name      string `json:"name"`
+	Value     string `json:"value,omitempty"`
+	CreatedAt string `json:"created_at,omitempty"`
+	UpdatedAt string `json:"updated_at,omitempty"`
+}
+
+// SecretsResponse represents the response from listing secrets.
+type SecretsResponse struct {
+	Secrets []Secret `json:"secrets"`
+}
+
+// CreateSecretRequest represents the request to create or update a secret.
+type CreateSecretRequest struct {
+	Name  string `json:"name"`
+	Value string `json:"value"`
+}
+
+// Member represents a Spice.ai organization member.
+type Member struct {
+	UserID    int64    `json:"user_id"`
+	Username  string   `json:"username"`
+	Roles     []string `json:"roles"`
+	IsOwner   bool     `json:"is_owner,omitempty"`
+	CreatedAt string   `json:"created_at,omitempty"`
+}
+
+// MembersResponse represents the response from listing members.
+type MembersResponse struct {
+	Members []Member `json:"members"`
+}
+
+// AddMemberRequest represents the request to add a member.
+type AddMemberRequest struct {
+	Username string   `json:"username"`
+	Roles    []string `json:"roles,omitempty"`
+}
+
+// UpdateMemberRequest represents the request to update a member's roles.
+type UpdateMemberRequest struct {
+	Roles []string `json:"roles"`
+}
+
 // CreateApp creates a new app.
 func (c *SpiceAIClient) CreateApp(ctx context.Context, req *CreateAppRequest) (*App, error) {
 	resp, err := c.doRequest(ctx, "POST", "/v1/apps", req)
@@ -517,4 +562,191 @@ func (c *SpiceAIClient) GetAPIKeys(ctx context.Context, appID int64) (*APIKeys, 
 	}
 
 	return &apiKeys, nil
+}
+
+// ListSecrets lists all secrets for an app.
+func (c *SpiceAIClient) ListSecrets(ctx context.Context, appID int64) ([]Secret, error) {
+	resp, err := c.doRequest(ctx, "GET", fmt.Sprintf("/v1/apps/%d/secrets", appID), nil)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("failed to list secrets: status %d: %s", resp.StatusCode, string(body))
+	}
+
+	var secretsResp SecretsResponse
+	if err := json.NewDecoder(resp.Body).Decode(&secretsResp); err != nil {
+		return nil, fmt.Errorf("failed to decode secrets response: %w", err)
+	}
+
+	return secretsResp.Secrets, nil
+}
+
+// GetSecret retrieves a secret by name.
+func (c *SpiceAIClient) GetSecret(ctx context.Context, appID int64, secretName string) (*Secret, error) {
+	resp, err := c.doRequest(ctx, "GET", fmt.Sprintf("/v1/apps/%d/secrets/%s", appID, url.PathEscape(secretName)), nil)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, nil // Secret not found
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("failed to get secret: status %d: %s", resp.StatusCode, string(body))
+	}
+
+	var secret Secret
+	if err := json.NewDecoder(resp.Body).Decode(&secret); err != nil {
+		return nil, fmt.Errorf("failed to decode secret response: %w", err)
+	}
+
+	return &secret, nil
+}
+
+// CreateOrUpdateSecret creates or updates a secret.
+func (c *SpiceAIClient) CreateOrUpdateSecret(ctx context.Context, appID int64, req *CreateSecretRequest) (*Secret, error) {
+	resp, err := c.doRequest(ctx, "POST", fmt.Sprintf("/v1/apps/%d/secrets", appID), req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("failed to create/update secret: status %d: %s", resp.StatusCode, string(body))
+	}
+
+	var secret Secret
+	if err := json.NewDecoder(resp.Body).Decode(&secret); err != nil {
+		return nil, fmt.Errorf("failed to decode secret response: %w", err)
+	}
+
+	return &secret, nil
+}
+
+// DeleteSecret deletes a secret by name.
+func (c *SpiceAIClient) DeleteSecret(ctx context.Context, appID int64, secretName string) error {
+	resp, err := c.doRequest(ctx, "DELETE", fmt.Sprintf("/v1/apps/%d/secrets/%s", appID, url.PathEscape(secretName)), nil)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("failed to delete secret: status %d: %s", resp.StatusCode, string(body))
+	}
+
+	return nil
+}
+
+// ListMembers lists all members in the organization.
+func (c *SpiceAIClient) ListMembers(ctx context.Context) ([]Member, error) {
+	resp, err := c.doRequest(ctx, "GET", "/v1/members", nil)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("failed to list members: status %d: %s", resp.StatusCode, string(body))
+	}
+
+	var membersResp MembersResponse
+	if err := json.NewDecoder(resp.Body).Decode(&membersResp); err != nil {
+		return nil, fmt.Errorf("failed to decode members response: %w", err)
+	}
+
+	return membersResp.Members, nil
+}
+
+// GetMember retrieves a member by user ID.
+func (c *SpiceAIClient) GetMember(ctx context.Context, memberID int64) (*Member, error) {
+	resp, err := c.doRequest(ctx, "GET", fmt.Sprintf("/v1/members/%d", memberID), nil)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, nil // Member not found
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("failed to get member: status %d: %s", resp.StatusCode, string(body))
+	}
+
+	var member Member
+	if err := json.NewDecoder(resp.Body).Decode(&member); err != nil {
+		return nil, fmt.Errorf("failed to decode member response: %w", err)
+	}
+
+	return &member, nil
+}
+
+// AddMember adds a new member to the organization.
+func (c *SpiceAIClient) AddMember(ctx context.Context, req *AddMemberRequest) (*Member, error) {
+	resp, err := c.doRequest(ctx, "POST", "/v1/members", req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("failed to add member: status %d: %s", resp.StatusCode, string(body))
+	}
+
+	var member Member
+	if err := json.NewDecoder(resp.Body).Decode(&member); err != nil {
+		return nil, fmt.Errorf("failed to decode member response: %w", err)
+	}
+
+	return &member, nil
+}
+
+// UpdateMember updates a member's roles.
+func (c *SpiceAIClient) UpdateMember(ctx context.Context, memberID int64, req *UpdateMemberRequest) (*Member, error) {
+	resp, err := c.doRequest(ctx, "PATCH", fmt.Sprintf("/v1/members/%d", memberID), req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("failed to update member: status %d: %s", resp.StatusCode, string(body))
+	}
+
+	var member Member
+	if err := json.NewDecoder(resp.Body).Decode(&member); err != nil {
+		return nil, fmt.Errorf("failed to decode member response: %w", err)
+	}
+
+	return &member, nil
+}
+
+// DeleteMember removes a member from the organization.
+func (c *SpiceAIClient) DeleteMember(ctx context.Context, memberID int64) error {
+	resp, err := c.doRequest(ctx, "DELETE", fmt.Sprintf("/v1/members/%d", memberID), nil)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("failed to delete member: status %d: %s", resp.StatusCode, string(body))
+	}
+
+	return nil
 }
