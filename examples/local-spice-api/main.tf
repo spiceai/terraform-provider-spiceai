@@ -41,6 +41,7 @@ resource "spiceai_deployment" "test" {
     spicepod  = spiceai_app.test.spicepod
     image_tag = spiceai_app.test.image_tag
     replicas  = spiceai_app.test.replicas
+    image_tag = spiceai_app.test.image_tag
   }
 
   # Use app defaults

@@ -527,7 +527,8 @@ func (m mapPlanModifierRequiresReplace) MarkdownDescription(ctx context.Context)
 }
 
 func (m mapPlanModifierRequiresReplace) PlanModifyMap(ctx context.Context, req planmodifier.MapRequest, resp *planmodifier.MapResponse) {
-	if req.StateValue.IsNull() {
+	// If there's no state (new resource), don't require replace
+	if req.State.Raw.IsNull() {
 		return
 	}
 
