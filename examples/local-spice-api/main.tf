@@ -28,8 +28,8 @@ resource "spiceai_app" "test" {
   spicepod = file("${path.module}/spicepod.yaml")
 
   # # Runtime configuration
-  image_tag         = "1.10.0-enterprise-models"
-  replicas          = 1
+  image_tag = "1.10.0-enterprise-models"
+  replicas  = 1
   # production_branch = "main"
 }
 

@@ -5,7 +5,9 @@ subcategory: ""
 description: |-
   Creates a deployment for a Spice.ai app.
   A deployment uses the app's current spicepod configuration and deploys it to the Spice.ai cloud infrastructure. Deployments are immutable - any changes to deployment parameters will create a new deployment.
+  ~> Note: Deployments are append-only log entries. Removing this resource from your configuration will only remove it from Terraform state - it will NOT stop or affect the running instance. To deploy new changes, modify the configuration or triggers to create a new deployment.
   Example Usage
+  Basic Deployment
   
   resource "spiceai_deployment" "example" {
     app_id = spiceai_app.example.id
@@ -20,6 +22,20 @@ description: |-
     commit_sha     = "abc123def456"
     commit_message = "Deploy via Terraform"
   }
+  
+  Deployment with Triggers
+  Use triggers to force a new deployment when external values change (similar to null_resource):
+  
+  resource "spiceai_deployment" "example" {
+    app_id = spiceai_app.example.id
+  
+    # Trigger new deployment when spicepod config changes
+    triggers = {
+      spicepod_hash = sha256(spiceai_app.example.spicepod)
+      # Or trigger on any value change
+      # deployment_version = "v1.2.3"
+    }
+  }
 ---
 
 # spiceai_deployment (Resource)
@@ -28,7 +44,11 @@ Creates a deployment for a Spice.ai app.
 
 A deployment uses the app's current spicepod configuration and deploys it to the Spice.ai cloud infrastructure. Deployments are immutable - any changes to deployment parameters will create a new deployment.
 
+~> **Note:** Deployments are append-only log entries. Removing this resource from your configuration will only remove it from Terraform state - it will NOT stop or affect the running instance. To deploy new changes, modify the configuration or triggers to create a new deployment.
+
 ## Example Usage
+
+### Basic Deployment
 
 ```hcl
 resource "spiceai_deployment" "example" {
@@ -43,6 +63,23 @@ resource "spiceai_deployment" "example" {
   branch         = "main"
   commit_sha     = "abc123def456"
   commit_message = "Deploy via Terraform"
+}
+```
+
+### Deployment with Triggers
+
+Use triggers to force a new deployment when external values change (similar to `null_resource`):
+
+```hcl
+resource "spiceai_deployment" "example" {
+  app_id = spiceai_app.example.id
+
+  # Trigger new deployment when spicepod config changes
+  triggers = {
+    spicepod_hash = sha256(spiceai_app.example.spicepod)
+    # Or trigger on any value change
+    # deployment_version = "v1.2.3"
+  }
 }
 ```
 
@@ -106,6 +143,7 @@ resource "spiceai_deployment" "production" {
 - `debug` (Boolean) Enable debug mode for this deployment. Changing this forces a new deployment to be created.
 - `image_tag` (String) Override the Spice.ai runtime image tag for this deployment. If not specified, uses the app's configured image tag. Changing this forces a new deployment to be created.
 - `replicas` (Number) Override the number of replicas for this deployment. Must be between 1 and 10. If not specified, uses the app's configured replicas. Changing this forces a new deployment to be created.
+- `triggers` (Map of String) A map of arbitrary strings that, when changed, will force a new deployment to be created. Use this to trigger deployments based on external changes, such as spicepod configuration updates. Similar to `triggers` in `null_resource`.
 
 ### Read-Only
 
