@@ -20,8 +20,8 @@ provider "spiceai" {
 
 # Create a test app with full configuration
 resource "spiceai_app" "test" {
-  name        = "terraform-test-app-local-1"
-  description = "Test app for Terraform provider validation"
+  name        = "terraform-test-app-local-2"
+  description = "Test app for Terraform provider validation, updated description"
   visibility  = "private"
 
   # Spicepod configuration from external file
@@ -29,7 +29,7 @@ resource "spiceai_app" "test" {
 
   # # Runtime configuration
   image_tag = "1.10.0-enterprise-models"
-  replicas  = 1
+  replicas  = 3
   # production_branch = "main"
 }
 
