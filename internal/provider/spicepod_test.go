@@ -7,7 +7,6 @@ import (
 	"context"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
@@ -160,96 +159,113 @@ name: test`,
 	}
 }
 
-func TestSpicepodNormalizePlanModifier_Description(t *testing.T) {
-	modifier := spicepodNormalizePlanModifier{}
+func TestSpicepodStringType_ValueFromString(t *testing.T) {
 	ctx := context.Background()
+	spicepodType := SpicepodStringType{}
 
-	desc := modifier.Description(ctx)
-	if desc == "" {
-		t.Error("Description() should not return empty string")
-	}
-
-	mdDesc := modifier.MarkdownDescription(ctx)
-	if mdDesc == "" {
-		t.Error("MarkdownDescription() should not return empty string")
-	}
-}
-
-func TestSpicepodNormalizePlanModifier_PlanModifyString(t *testing.T) {
 	tests := []struct {
-		name          string
-		planValue     types.String
-		expectedValue types.String
+		name  string
+		input types.String
 	}{
 		{
-			name:          "null value unchanged",
-			planValue:     types.StringNull(),
-			expectedValue: types.StringNull(),
+			name:  "normal string",
+			input: types.StringValue("version: v1beta1"),
 		},
 		{
-			name:          "unknown value unchanged",
-			planValue:     types.StringUnknown(),
-			expectedValue: types.StringUnknown(),
+			name:  "null string",
+			input: types.StringNull(),
 		},
 		{
-			name:          "yaml normalized to json",
-			planValue:     types.StringValue("version: v1beta1\nkind: Spicepod\nname: test"),
-			expectedValue: types.StringValue(`{"kind":"Spicepod","name":"test","version":"v1beta1"}`),
-		},
-		{
-			name:          "json normalized",
-			planValue:     types.StringValue(`{"version":"v1beta1","kind":"Spicepod","name":"test"}`),
-			expectedValue: types.StringValue(`{"kind":"Spicepod","name":"test","version":"v1beta1"}`),
-		},
-		{
-			name:          "empty string becomes null",
-			planValue:     types.StringValue(""),
-			expectedValue: types.StringValue("null"),
+			name:  "unknown string",
+			input: types.StringUnknown(),
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			modifier := spicepodNormalizePlanModifier{}
-			ctx := context.Background()
-
-			req := planmodifier.StringRequest{
-				PlanValue: tt.planValue,
-			}
-			resp := &planmodifier.StringResponse{
-				PlanValue: tt.planValue,
+			result, diags := spicepodType.ValueFromString(ctx, tt.input)
+			if diags.HasError() {
+				t.Errorf("unexpected error: %v", diags)
 			}
 
-			modifier.PlanModifyString(ctx, req, resp)
-
-			if tt.planValue.IsNull() {
-				if !resp.PlanValue.IsNull() {
-					t.Errorf("expected null, got %v", resp.PlanValue)
-				}
-				return
+			spicepodValue, ok := result.(SpicepodStringValue)
+			if !ok {
+				t.Errorf("expected SpicepodStringValue, got %T", result)
 			}
 
-			if tt.planValue.IsUnknown() {
-				if !resp.PlanValue.IsUnknown() {
-					t.Errorf("expected unknown, got %v", resp.PlanValue)
-				}
-				return
-			}
-
-			if resp.PlanValue.ValueString() != tt.expectedValue.ValueString() {
-				t.Errorf("PlanModifyString() =\n%s\nwant:\n%s", resp.PlanValue.ValueString(), tt.expectedValue.ValueString())
+			if spicepodValue.ValueString() != tt.input.ValueString() {
+				t.Errorf("value mismatch: got %s, want %s", spicepodValue.ValueString(), tt.input.ValueString())
 			}
 		})
 	}
 }
 
-func TestSpicepodNormalizePlanModifier_RealWorldExample(t *testing.T) {
-	// Simulate the real-world scenario from the bug report
-	modifier := spicepodNormalizePlanModifier{}
+func TestSpicepodStringValue_StringSemanticEquals(t *testing.T) {
+	ctx := context.Background()
+
+	tests := []struct {
+		name     string
+		value1   SpicepodStringValue
+		value2   SpicepodStringValue
+		expected bool
+	}{
+		{
+			name:     "yaml equals equivalent json",
+			value1:   SpicepodStringValue{StringValue: types.StringValue("version: v1beta1\nkind: Spicepod\nname: test")},
+			value2:   SpicepodStringValue{StringValue: types.StringValue(`{"kind":"Spicepod","name":"test","version":"v1beta1"}`)},
+			expected: true,
+		},
+		{
+			name:     "json equals json with different key order",
+			value1:   SpicepodStringValue{StringValue: types.StringValue(`{"version":"v1beta1","name":"test","kind":"Spicepod"}`)},
+			value2:   SpicepodStringValue{StringValue: types.StringValue(`{"kind":"Spicepod","name":"test","version":"v1beta1"}`)},
+			expected: true,
+		},
+		{
+			name:     "different values are not equal",
+			value1:   SpicepodStringValue{StringValue: types.StringValue("version: v1beta1\nkind: Spicepod\nname: test1")},
+			value2:   SpicepodStringValue{StringValue: types.StringValue("version: v1beta1\nkind: Spicepod\nname: test2")},
+			expected: false,
+		},
+		{
+			name:     "null values are equal",
+			value1:   SpicepodStringValue{StringValue: types.StringNull()},
+			value2:   SpicepodStringValue{StringValue: types.StringNull()},
+			expected: true,
+		},
+		{
+			name:     "null and non-null are not equal",
+			value1:   SpicepodStringValue{StringValue: types.StringNull()},
+			value2:   SpicepodStringValue{StringValue: types.StringValue("version: v1beta1")},
+			expected: false,
+		},
+		{
+			name:     "complex yaml equals complex json",
+			value1:   SpicepodStringValue{StringValue: types.StringValue("version: v1beta1\nkind: Spicepod\nname: test\ndatasets:\n  - name: ds1\n    from: s3://bucket/")},
+			value2:   SpicepodStringValue{StringValue: types.StringValue(`{"datasets":[{"from":"s3://bucket/","name":"ds1"}],"kind":"Spicepod","name":"test","version":"v1beta1"}`)},
+			expected: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, diags := tt.value1.StringSemanticEquals(ctx, tt.value2)
+			if diags.HasError() {
+				t.Errorf("unexpected error: %v", diags)
+			}
+
+			if result != tt.expected {
+				t.Errorf("StringSemanticEquals() = %v, want %v", result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestSpicepodStringValue_SemanticEquals_RealWorldExample(t *testing.T) {
 	ctx := context.Background()
 
 	// User provides YAML (like from file("spicepod.yaml"))
-	userYAML := `version: v1beta1
+	userYAML := SpicepodStringValue{StringValue: types.StringValue(`version: v1beta1
 kind: Spicepod
 name: terraform-test-app
 
@@ -258,26 +274,54 @@ datasets:
     from: s3://spiceai-demo-datasets/taxi_trips/2024/
     params:
       file_format: parquet
-`
+`)}
 
 	// API returns JSON
-	apiJSON := `{"datasets":[{"from":"s3://spiceai-demo-datasets/taxi_trips/2024/","name":"test_dataset","params":{"file_format":"parquet"}}],"kind":"Spicepod","name":"terraform-test-app","version":"v1beta1"}`
+	apiJSON := SpicepodStringValue{StringValue: types.StringValue(`{"datasets":[{"from":"s3://spiceai-demo-datasets/taxi_trips/2024/","name":"test_dataset","params":{"file_format":"parquet"}}],"kind":"Spicepod","name":"terraform-test-app","version":"v1beta1"}`)}
 
-	// Normalize user's YAML through plan modifier
-	req := planmodifier.StringRequest{
-		PlanValue: types.StringValue(userYAML),
+	// They should be semantically equal
+	equal, diags := userYAML.StringSemanticEquals(ctx, apiJSON)
+	if diags.HasError() {
+		t.Errorf("unexpected error: %v", diags)
 	}
-	resp := &planmodifier.StringResponse{
-		PlanValue: types.StringValue(userYAML),
+
+	if !equal {
+		t.Errorf("User YAML and API JSON should be semantically equal")
 	}
-	modifier.PlanModifyString(ctx, req, resp)
-	normalizedUserValue := resp.PlanValue.ValueString()
 
-	// Normalize API response (as done in mapAppToModel)
-	normalizedAPIValue := normalizeSpicepodToJSON(apiJSON)
+	// Reverse comparison should also work
+	equal, diags = apiJSON.StringSemanticEquals(ctx, userYAML)
+	if diags.HasError() {
+		t.Errorf("unexpected error: %v", diags)
+	}
 
-	// They should match!
-	if normalizedUserValue != normalizedAPIValue {
-		t.Errorf("User value and API value should match after normalization:\nUser (normalized): %s\nAPI (normalized):  %s", normalizedUserValue, normalizedAPIValue)
+	if !equal {
+		t.Errorf("API JSON and User YAML should be semantically equal (reverse)")
+	}
+}
+
+func TestSpicepodStringValue_SemanticEquals_DetectsRealChanges(t *testing.T) {
+	ctx := context.Background()
+
+	// Old config
+	oldYAML := SpicepodStringValue{StringValue: types.StringValue(`version: v1beta1
+kind: Spicepod
+name: terraform-test-app-old
+`)}
+
+	// New config with different name
+	newYAML := SpicepodStringValue{StringValue: types.StringValue(`version: v1beta1
+kind: Spicepod
+name: terraform-test-app-new
+`)}
+
+	// They should NOT be equal (name changed)
+	equal, diags := oldYAML.StringSemanticEquals(ctx, newYAML)
+	if diags.HasError() {
+		t.Errorf("unexpected error: %v", diags)
+	}
+
+	if equal {
+		t.Errorf("Different spicepod names should NOT be semantically equal")
 	}
 }

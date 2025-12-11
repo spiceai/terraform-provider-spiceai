@@ -3,7 +3,7 @@ kind: Spicepod
 name: terraform-test-app-local-1
 
 datasets:
-  - name: test_dataset
+  - name: test_dataset_2
     from: s3://spiceai-demo-datasets/taxi_trips/2024/
     params:
       file_format: parquet

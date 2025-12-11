@@ -13,6 +13,8 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -21,32 +23,95 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"gopkg.in/yaml.v3"
 )
 
-// spicepodNormalizePlanModifier normalizes spicepod YAML/JSON to a consistent JSON format.
-type spicepodNormalizePlanModifier struct{}
-
-var _ planmodifier.String = spicepodNormalizePlanModifier{}
-
-func (m spicepodNormalizePlanModifier) Description(ctx context.Context) string {
-	return "Normalizes spicepod configuration (YAML or JSON) to a consistent JSON format."
+// SpicepodStringType is a custom string type that implements semantic equality
+// for spicepod configurations, treating equivalent YAML and JSON as equal.
+type SpicepodStringType struct {
+	basetypes.StringType
 }
 
-func (m spicepodNormalizePlanModifier) MarkdownDescription(ctx context.Context) string {
-	return "Normalizes spicepod configuration (YAML or JSON) to a consistent JSON format."
+var _ basetypes.StringTypable = SpicepodStringType{}
+
+func (t SpicepodStringType) Equal(o attr.Type) bool {
+	other, ok := o.(SpicepodStringType)
+	if !ok {
+		return false
+	}
+	return t.StringType.Equal(other.StringType)
 }
 
-func (m spicepodNormalizePlanModifier) PlanModifyString(ctx context.Context, req planmodifier.StringRequest, resp *planmodifier.StringResponse) {
-	// If the value is null or unknown, don't modify
-	if req.PlanValue.IsNull() || req.PlanValue.IsUnknown() {
-		return
+func (t SpicepodStringType) String() string {
+	return "SpicepodStringType"
+}
+
+func (t SpicepodStringType) ValueFromString(ctx context.Context, in basetypes.StringValue) (basetypes.StringValuable, diag.Diagnostics) {
+	return SpicepodStringValue{StringValue: in}, nil
+}
+
+func (t SpicepodStringType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (attr.Value, error) {
+	attrValue, err := t.StringType.ValueFromTerraform(ctx, in)
+	if err != nil {
+		return nil, err
+	}
+	stringValue, ok := attrValue.(basetypes.StringValue)
+	if !ok {
+		return nil, fmt.Errorf("unexpected value type of %T", attrValue)
+	}
+	stringValuable, diags := t.ValueFromString(ctx, stringValue)
+	if diags.HasError() {
+		return nil, fmt.Errorf("error converting string value: %v", diags)
+	}
+	return stringValuable, nil
+}
+
+func (t SpicepodStringType) ValueType(ctx context.Context) attr.Value {
+	return SpicepodStringValue{}
+}
+
+// SpicepodStringValue is a custom string value that implements semantic equality
+// for spicepod configurations.
+type SpicepodStringValue struct {
+	basetypes.StringValue
+}
+
+var _ basetypes.StringValuable = SpicepodStringValue{}
+var _ basetypes.StringValuableWithSemanticEquals = SpicepodStringValue{}
+
+func (v SpicepodStringValue) Equal(o attr.Value) bool {
+	other, ok := o.(SpicepodStringValue)
+	if !ok {
+		return false
+	}
+	return v.StringValue.Equal(other.StringValue)
+}
+
+func (v SpicepodStringValue) Type(ctx context.Context) attr.Type {
+	return SpicepodStringType{}
+}
+
+// StringSemanticEquals implements semantic equality for spicepod strings.
+// It normalizes both YAML and JSON to a common format for comparison.
+func (v SpicepodStringValue) StringSemanticEquals(ctx context.Context, newValuable basetypes.StringValuable) (bool, diag.Diagnostics) {
+	newValue, ok := newValuable.(SpicepodStringValue)
+	if !ok {
+		return false, nil
 	}
 
-	// Normalize the planned value to JSON
-	normalized := normalizeSpicepodToJSON(req.PlanValue.ValueString())
-	resp.PlanValue = types.StringValue(normalized)
+	// If either is null or unknown, use standard equality
+	if v.IsNull() || v.IsUnknown() || newValue.IsNull() || newValue.IsUnknown() {
+		return v.Equal(newValue), nil
+	}
+
+	// Normalize both values to JSON for comparison
+	oldNormalized := normalizeSpicepodToJSON(v.ValueString())
+	newNormalized := normalizeSpicepodToJSON(newValue.ValueString())
+
+	return oldNormalized == newNormalized, nil
 }
 
 // normalizeSpicepodToJSON converts a spicepod string (YAML or JSON) to a normalized JSON string.
@@ -101,7 +166,7 @@ type AppResourceModel struct {
 	ProductionBranch types.String `tfsdk:"production_branch"`
 
 	// Spicepod configuration
-	Spicepod types.String `tfsdk:"spicepod"`
+	Spicepod SpicepodStringValue `tfsdk:"spicepod"`
 
 	// Runtime configuration
 	ImageTag           types.String  `tfsdk:"image_tag"`
@@ -198,9 +263,7 @@ resource "spiceai_app" "example" {
 				MarkdownDescription: "The spicepod configuration as a YAML or JSON string. This defines the datasets, models, and other spicepod settings for the app.",
 				Optional:            true,
 				Computed:            true,
-				PlanModifiers: []planmodifier.String{
-					spicepodNormalizePlanModifier{},
-				},
+				CustomType:          SpicepodStringType{},
 			},
 
 			// Runtime configuration attributes
@@ -567,13 +630,25 @@ func (r *AppResource) mapAppToModel(data *AppResourceModel, app *client.App) {
 
 		if app.Config.Spicepod != nil {
 			if spicepodBytes, err := json.Marshal(app.Config.Spicepod); err == nil {
-				// Normalize the API response to consistent JSON format
-				data.Spicepod = types.StringValue(normalizeSpicepodToJSON(string(spicepodBytes)))
+				apiSpicepodJSON := string(spicepodBytes)
+				// If user's value is semantically equal to API response, preserve user's format
+				if !data.Spicepod.IsNull() && !data.Spicepod.IsUnknown() {
+					userNormalized := normalizeSpicepodToJSON(data.Spicepod.ValueString())
+					apiNormalized := normalizeSpicepodToJSON(apiSpicepodJSON)
+					if userNormalized == apiNormalized {
+						// Keep the user's original value (YAML or JSON) - don't overwrite
+					} else {
+						// Values differ semantically, use API response
+						data.Spicepod = SpicepodStringValue{StringValue: types.StringValue(apiSpicepodJSON)}
+					}
+				} else {
+					data.Spicepod = SpicepodStringValue{StringValue: types.StringValue(apiSpicepodJSON)}
+				}
 			} else {
-				data.Spicepod = types.StringNull()
+				data.Spicepod = SpicepodStringValue{StringValue: types.StringNull()}
 			}
 		} else {
-			data.Spicepod = types.StringNull()
+			data.Spicepod = SpicepodStringValue{StringValue: types.StringNull()}
 		}
 	} else {
 		// No config returned, set all config fields to null
@@ -581,6 +656,6 @@ func (r *AppResource) mapAppToModel(data *AppResourceModel, app *client.App) {
 		data.Replicas = types.Int64Null()
 		data.NodeGroup = types.StringNull()
 		data.StorageClaimSizeGB = types.Float64Null()
-		data.Spicepod = types.StringNull()
+		data.Spicepod = SpicepodStringValue{StringValue: types.StringNull()}
 	}
 }
