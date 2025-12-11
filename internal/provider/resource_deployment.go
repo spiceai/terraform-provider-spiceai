@@ -40,6 +40,7 @@ type DeploymentResource struct {
 type DeploymentResourceModel struct {
 	ID             types.String `tfsdk:"id"`
 	AppID          types.String `tfsdk:"app_id"`
+	Triggers       types.Map    `tfsdk:"triggers"`
 	ImageTag       types.String `tfsdk:"image_tag"`
 	Replicas       types.Int64  `tfsdk:"replicas"`
 	Branch         types.String `tfsdk:"branch"`
@@ -66,7 +67,11 @@ func (r *DeploymentResource) Schema(ctx context.Context, req resource.SchemaRequ
 
 A deployment uses the app's current spicepod configuration and deploys it to the Spice.ai cloud infrastructure. Deployments are immutable - any changes to deployment parameters will create a new deployment.
 
+~> **Note:** Deployments are append-only log entries. Removing this resource from your configuration will only remove it from Terraform state - it will NOT stop or affect the running instance. To deploy new changes, modify the configuration or triggers to create a new deployment.
+
 ## Example Usage
+
+### Basic Deployment
 
 ` + "```hcl" + `
 resource "spiceai_deployment" "example" {
@@ -81,6 +86,23 @@ resource "spiceai_deployment" "example" {
   branch         = "main"
   commit_sha     = "abc123def456"
   commit_message = "Deploy via Terraform"
+}
+` + "```" + `
+
+### Deployment with Triggers
+
+Use triggers to force a new deployment when external values change (similar to ` + "`null_resource`" + `):
+
+` + "```hcl" + `
+resource "spiceai_deployment" "example" {
+  app_id = spiceai_app.example.id
+
+  # Trigger new deployment when spicepod config changes
+  triggers = {
+    spicepod_hash = sha256(spiceai_app.example.spicepod)
+    # Or trigger on any value change
+    # deployment_version = "v1.2.3"
+  }
 }
 ` + "```",
 
@@ -97,6 +119,14 @@ resource "spiceai_deployment" "example" {
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
+				},
+			},
+			"triggers": schema.MapAttribute{
+				MarkdownDescription: "A map of arbitrary strings that, when changed, will force a new deployment to be created. Use this to trigger deployments based on external changes, such as spicepod configuration updates. Similar to `triggers` in `null_resource`.",
+				Optional:            true,
+				ElementType:         types.StringType,
+				PlanModifiers: []planmodifier.Map{
+					mapPlanModifierRequiresReplace{},
 				},
 			},
 			"image_tag": schema.StringAttribute{
@@ -325,7 +355,14 @@ func (r *DeploymentResource) Delete(ctx context.Context, req resource.DeleteRequ
 	}
 
 	// Deployments cannot be deleted via API, they just get superseded by new deployments
-	// We just remove from Terraform state
+	// We just remove from Terraform state and warn the user
+	resp.Diagnostics.AddWarning(
+		"Deployment Not Stopped",
+		"Removing the deployment resource from Terraform only removes it from state. "+
+			"The running instance is not affected. To deploy new changes, create a new deployment. "+
+			"To stop the instance, use the Spice.ai dashboard or CLI.",
+	)
+
 	tflog.Trace(ctx, "removed deployment from state (deployments cannot be deleted)", map[string]interface{}{
 		"id":     data.ID.ValueString(),
 		"app_id": data.AppID.ValueString(),
@@ -464,6 +501,32 @@ func (m boolPlanModifierRequiresReplace) MarkdownDescription(ctx context.Context
 }
 
 func (m boolPlanModifierRequiresReplace) PlanModifyBool(ctx context.Context, req planmodifier.BoolRequest, resp *planmodifier.BoolResponse) {
+	if req.StateValue.IsNull() {
+		return
+	}
+
+	if req.PlanValue.IsUnknown() {
+		return
+	}
+
+	if req.StateValue.Equal(req.PlanValue) {
+		return
+	}
+
+	resp.RequiresReplace = true
+}
+
+type mapPlanModifierRequiresReplace struct{}
+
+func (m mapPlanModifierRequiresReplace) Description(ctx context.Context) string {
+	return "If the value of this attribute changes, Terraform will destroy and recreate the resource."
+}
+
+func (m mapPlanModifierRequiresReplace) MarkdownDescription(ctx context.Context) string {
+	return "If the value of this attribute changes, Terraform will destroy and recreate the resource."
+}
+
+func (m mapPlanModifierRequiresReplace) PlanModifyMap(ctx context.Context, req planmodifier.MapRequest, resp *planmodifier.MapResponse) {
 	if req.StateValue.IsNull() {
 		return
 	}

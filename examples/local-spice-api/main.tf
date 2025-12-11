@@ -36,6 +36,13 @@ resource "spiceai_app" "test" {
 resource "spiceai_deployment" "test" {
   app_id = spiceai_app.test.id
 
+  # Trigger new deployment when app configuration changes
+  triggers = {
+    spicepod  = spiceai_app.test.spicepod
+    image_tag = spiceai_app.test.image_tag
+    replicas  = spiceai_app.test.replicas
+  }
+
   # Use app defaults
   debug = false
 }
