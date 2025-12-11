@@ -20,7 +20,7 @@ provider "spiceai" {
 
 # Create a test app with full configuration
 resource "spiceai_app" "test" {
-  name        = "terraform-test-app-local"
+  name        = "terraform-test-app-local-1"
   description = "Test app for Terraform provider validation"
   visibility  = "private"
 
@@ -33,12 +33,12 @@ resource "spiceai_app" "test" {
   # production_branch = "main"
 }
 
-# resource "spiceai_deployment" "test" {
-#   app_id = spiceai_app.test.id
+resource "spiceai_deployment" "test" {
+  app_id = spiceai_app.test.id
 
-#   # Use app defaults
-#   debug = false
-# }
+  # Use app defaults
+  debug = false
+}
 
 # Outputs for verification
 # output "app_id" {

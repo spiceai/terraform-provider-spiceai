@@ -1,6 +1,6 @@
 version: v1beta1
 kind: Spicepod
-name: terraform-test-app-local
+name: terraform-test-app-local-1
 
 datasets:
   - name: test_dataset
