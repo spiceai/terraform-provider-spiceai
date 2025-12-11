@@ -1,0 +1,149 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
+# Example workflow for spicehq/cloud to consume the terraform provider artifact
+# Copy and adapt this workflow to your e2e test needs
+#
+# This workflow demonstrates how to:
+# 1. Download the pre-built provider from terraform-provider-spiceai (internal repo)
+# 2. Configure Terraform to use it via dev overrides
+# 3. Run e2e tests with the provider
+#
+# IMPORTANT: Since terraform-provider-spiceai is an internal repo, you need a PAT
+# or GitHub App token with `actions:read` permission on the source repo.
+# The default GITHUB_TOKEN does NOT work for cross-repo artifact access.
+
+name: E2E Tests
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  e2e:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      # Download the provider artifact from terraform-provider-spiceai repo
+      #
+      # Required secret: GH_PAT
+      # Create a Personal Access Token (classic) or Fine-grained PAT with:
+      #   - actions:read permission on spicehq/terraform-provider-spiceai
+      # Or use a GitHub App installation token with Actions read permission
+      #
+      # To create the secret:
+      #   1. Go to spicehq/cloud -> Settings -> Secrets and variables -> Actions
+      #   2. Create a new secret named GH_PAT with your token
+      - name: Download Terraform Provider
+        uses: dawidd6/action-download-artifact@v6
+        with:
+          github_token: ${{ secrets.GH_PAT }}
+          repo: spicehq/terraform-provider-spiceai
+          workflow: build-artifact.yml
+          branch: main
+          name: terraform-provider-spiceai_linux_amd64
+          path: .terraform-provider
+
+      # Alternative: Download using GitHub CLI
+      # Uncomment this block and comment out the above step if you prefer gh cli
+      # - name: Download Terraform Provider (gh cli)
+      #   env:
+      #     GH_TOKEN: ${{ secrets.GH_PAT }}
+      #   run: |
+      #     mkdir -p .terraform-provider
+      #     
+      #     # Get the latest successful workflow run
+      #     RUN_ID=$(gh run list \
+      #       --repo spicehq/terraform-provider-spiceai \
+      #       --workflow build-artifact.yml \
+      #       --branch main \
+      #       --status success \
+      #       --limit 1 \
+      #       --json databaseId \
+      #       --jq '.[0].databaseId')
+      #     
+      #     # Download the artifact
+      #     gh run download "$RUN_ID" \
+      #       --repo spicehq/terraform-provider-spiceai \
+      #       --name terraform-provider-spiceai_linux_amd64 \
+      #       --dir .terraform-provider
+
+      - name: Setup Terraform Provider
+        run: |
+          chmod +x .terraform-provider/terraform-provider-spiceai_linux_amd64
+          
+          # Rename binary to match what Terraform expects
+          mv .terraform-provider/terraform-provider-spiceai_linux_amd64 \
+             .terraform-provider/terraform-provider-spiceai
+          
+          # Create Terraform CLI config with dev override
+          mkdir -p ~/.terraform.d
+          cat > ~/.terraform.d/terraformrc << EOF
+          provider_installation {
+            dev_overrides {
+              "spiceai/spiceai" = "${{ github.workspace }}/.terraform-provider"
+            }
+            direct {}
+          }
+          EOF
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+
+      # Your e2e test steps go here
+      - name: Run E2E Tests
+        env:
+          SPICEAI_CLIENT_ID: ${{ secrets.SPICEAI_CLIENT_ID }}
+          SPICEAI_CLIENT_SECRET: ${{ secrets.SPICEAI_CLIENT_SECRET }}
+          TF_CLI_CONFIG_FILE: ~/.terraform.d/terraformrc
+        run: |
+          cd path/to/your/terraform/configs
+          
+          # Note: With dev overrides, Terraform will warn that it's using
+          # a locally-installed provider. This is expected behavior.
+          terraform plan
+          terraform apply -auto-approve
+          
+          # Run your e2e test assertions here
+          
+          # Cleanup
+          terraform destroy -auto-approve
+
+# =============================================================================
+# Setup Instructions
+# =============================================================================
+#
+# 1. Create a PAT (Personal Access Token):
+#    - Go to GitHub Settings -> Developer settings -> Personal access tokens
+#    - For Fine-grained token (recommended):
+#      - Resource owner: spicehq
+#      - Repository access: Select "spicehq/terraform-provider-spiceai"
+#      - Permissions: Actions (read)
+#    - For Classic token:
+#      - Select scope: repo (for internal repos)
+#
+# 2. Add the PAT as a secret in spicehq/cloud:
+#    - Go to spicehq/cloud -> Settings -> Secrets and variables -> Actions
+#    - New repository secret: GH_PAT = <your-token>
+#
+# 3. Also add Spice.ai credentials as secrets:
+#    - SPICEAI_CLIENT_ID
+#    - SPICEAI_CLIENT_SECRET
+#
+# =============================================================================
+# Notes
+# =============================================================================
+#
+# - Artifacts are retained for 90 days by default
+# - For macOS runners, use macos-latest and download darwin_arm64 or darwin_amd64
+# - The provider is built on every merge to main in terraform-provider-spiceai
