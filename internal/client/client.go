@@ -153,22 +153,26 @@ func (c *SpiceAIClient) doRequest(ctx context.Context, method, path string, body
 
 // App represents a Spice.ai app.
 type App struct {
-	ID               int64      `json:"id"`
-	Name             string     `json:"name"`
-	Description      string     `json:"description,omitempty"`
-	Visibility       string     `json:"visibility,omitempty"`
-	CreatedAt        string     `json:"created_at,omitempty"`
-	Region           string     `json:"region,omitempty"`
-	ClusterID        string     `json:"cluster_id,omitempty"`
-	ProductionBranch string     `json:"production_branch,omitempty"`
-	APIKey           string     `json:"api_key,omitempty"`
-	Config           *AppConfig `json:"config,omitempty"`
+	ID               int64             `json:"id"`
+	Name             string            `json:"name"`
+	Description      string            `json:"description,omitempty"`
+	Visibility       string            `json:"visibility,omitempty"`
+	CreatedAt        string            `json:"created_at,omitempty"`
+	Region           string            `json:"region,omitempty"`
+	ClusterID        string            `json:"cluster_id,omitempty"`
+	ProductionBranch string            `json:"production_branch,omitempty"`
+	APIKey           string            `json:"api_key,omitempty"`
+	Tags             map[string]string `json:"tags,omitempty"`
+	Config           *AppConfig        `json:"config,omitempty"`
 }
 
 // AppConfig represents the configuration of an app.
 type AppConfig struct {
 	Spicepod           interface{} `json:"spicepod,omitempty"`
+	Registry           string      `json:"registry,omitempty"`
+	Image              string      `json:"image,omitempty"`
 	ImageTag           string      `json:"image_tag,omitempty"`
+	UpdateChannel      string      `json:"update_channel,omitempty"`
 	Replicas           int         `json:"replicas,omitempty"`
 	Region             string      `json:"region,omitempty"`
 	NodeGroup          string      `json:"node_group,omitempty"`
@@ -177,22 +181,27 @@ type AppConfig struct {
 
 // CreateAppRequest represents the request to create an app.
 type CreateAppRequest struct {
-	Name        string `json:"name"`
-	Description string `json:"description,omitempty"`
-	Visibility  string `json:"visibility,omitempty"`
+	Name        string            `json:"name"`
+	Description string            `json:"description,omitempty"`
+	Visibility  string            `json:"visibility,omitempty"`
+	Tags        map[string]string `json:"tags,omitempty"`
 }
 
 // UpdateAppRequest represents the request to update an app.
 type UpdateAppRequest struct {
-	Description        string      `json:"description,omitempty"`
-	Visibility         string      `json:"visibility,omitempty"`
-	ProductionBranch   string      `json:"production_branch,omitempty"`
-	Spicepod           interface{} `json:"spicepod,omitempty"`
-	ImageTag           string      `json:"image_tag,omitempty"`
-	Replicas           *int        `json:"replicas,omitempty"`
-	NodeGroup          string      `json:"node_group,omitempty"`
-	Region             string      `json:"region,omitempty"`
-	StorageClaimSizeGB *float64    `json:"storage_claim_size_gb,omitempty"`
+	Description        string            `json:"description,omitempty"`
+	Visibility         string            `json:"visibility,omitempty"`
+	ProductionBranch   string            `json:"production_branch,omitempty"`
+	Tags               map[string]string `json:"tags,omitempty"`
+	Spicepod           interface{}       `json:"spicepod,omitempty"`
+	Registry           string            `json:"registry,omitempty"`
+	Image              string            `json:"image,omitempty"`
+	ImageTag           string            `json:"image_tag,omitempty"`
+	UpdateChannel      string            `json:"update_channel,omitempty"`
+	Replicas           *int              `json:"replicas,omitempty"`
+	NodeGroup          string            `json:"node_group,omitempty"`
+	Region             string            `json:"region,omitempty"`
+	StorageClaimSizeGB *float64          `json:"storage_claim_size_gb,omitempty"`
 }
 
 // Deployment represents a Spice.ai deployment.
@@ -240,6 +249,7 @@ type Region struct {
 	Provider     string `json:"provider"`
 	ProviderName string `json:"providerName"`
 	IsDefault    bool   `json:"isDefault"`
+	Disabled     bool   `json:"disabled"`
 	CName        string `json:"cname"`
 }
 

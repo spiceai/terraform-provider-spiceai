@@ -154,7 +154,7 @@ resource "spiceai_deployment" "production" {
 - `finished_at` (String) The timestamp when the deployment finished.
 - `id` (String) The unique identifier of the deployment.
 - `started_at` (String) The timestamp when the deployment started running.
-- `status` (String) The current status of the deployment. Possible values: `queued`, `deploying`, `running`, `failed`, `stopped`.
+- `status` (String) The current status of the deployment. Possible values: `queued`, `in_progress`, `succeeded`, `failed`, `created`.
 - `updated_at` (String) The timestamp when the deployment was last updated.
 
 ## Import

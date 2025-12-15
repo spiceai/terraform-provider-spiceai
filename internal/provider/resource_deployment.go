@@ -185,7 +185,7 @@ resource "spiceai_deployment" "example" {
 			},
 			"status": schema.StringAttribute{
 				Computed:            true,
-				MarkdownDescription: "The current status of the deployment. Possible values: `queued`, `deploying`, `running`, `failed`, `stopped`.",
+				MarkdownDescription: "The current status of the deployment. Possible values: `queued`, `in_progress`, `succeeded`, `failed`, `created`.",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
