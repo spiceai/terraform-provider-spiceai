@@ -422,17 +422,45 @@
                     "api_key": {
                       "type": "string"
                     },
+                    "tags": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
                     "config": {
                       "type": "object",
                       "properties": {
                         "spicepod": {
                           "type": "object"
                         },
+                        "registry": {
+                          "type": "string",
+                          "description": "Registry for the spiced image"
+                        },
+                        "image": {
+                          "type": "string",
+                          "description": "Image name for the spiced container"
+                        },
                         "image_tag": {
-                          "type": "string"
+                          "type": "string",
+                          "description": "Spice.ai runtime image tag"
+                        },
+                        "update_channel": {
+                          "type": "string",
+                          "enum": [
+                            "stable",
+                            "nightly",
+                            "internal",
+                            "internal-sandbox"
+                          ],
+                          "description": "Update channel for the spicepod"
                         },
                         "replicas": {
                           "type": "integer"
+                        },
+                        "region": {
+                          "type": "string"
                         },
                         "node_group": {
                           "type": "string"
@@ -495,6 +523,13 @@
                   "production_branch": {
                     "type": "string"
                   },
+                  "tags": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "string"
+                    },
+                    "description": "Key-value tags for the app"
+                  },
                   "spicepod": {
                     "oneOf": [
                       {
@@ -510,6 +545,24 @@
                   "image_tag": {
                     "type": "string",
                     "description": "Spice.ai runtime image tag"
+                  },
+                  "image": {
+                    "type": "string",
+                    "description": "Image name for the spiced container"
+                  },
+                  "registry": {
+                    "type": "string",
+                    "description": "Registry for the spiced image"
+                  },
+                  "update_channel": {
+                    "type": "string",
+                    "enum": [
+                      "stable",
+                      "nightly",
+                      "internal",
+                      "internal-sandbox"
+                    ],
+                    "description": "Update channel for the spicepod"
                   },
                   "replicas": {
                     "type": "integer",
@@ -935,6 +988,13 @@
                     "type": "string",
                     "enum": ["public", "private"],
                     "default": "private"
+                  },
+                  "tags": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "string"
+                    },
+                    "description": "Key-value tags for the app"
                   }
                 }
               }

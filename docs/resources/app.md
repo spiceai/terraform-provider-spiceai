@@ -142,13 +142,17 @@ resource "spiceai_app" "json_config" {
 ### Optional
 
 - `description` (String) A description of the app.
+- `image` (String) Image name for the spiced container.
 - `image_tag` (String) The Spice.ai runtime image tag to use for deployments (e.g., `latest`, `v0.18.0`).
 - `node_group` (String) The node group for the app deployment.
 - `production_branch` (String) The production branch for the app. Used for git-based deployments.
 - `region` (String) The region for the app deployment.
+- `registry` (String) Registry for the spiced image.
 - `replicas` (Number) The number of replicas for the app. Must be between 1 and 10.
 - `spicepod` (String) The spicepod configuration as a YAML or JSON string. This defines the datasets, models, and other spicepod settings for the app.
 - `storage_claim_size_gb` (Number) The storage claim size in GB for the app.
+- `tags` (Map of String) Key-value tags for the app.
+- `update_channel` (String) Update channel for the spicepod. Valid values are `stable`, `nightly`, `internal`, `internal-sandbox`.
 - `visibility` (String) The visibility of the app. Valid values are `public` or `private`. Defaults to `private`.
 
 ### Read-Only

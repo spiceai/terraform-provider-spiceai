@@ -164,12 +164,16 @@ type AppResourceModel struct {
 	Description      types.String `tfsdk:"description"`
 	Visibility       types.String `tfsdk:"visibility"`
 	ProductionBranch types.String `tfsdk:"production_branch"`
+	Tags             types.Map    `tfsdk:"tags"`
 
 	// Spicepod configuration
 	Spicepod SpicepodStringValue `tfsdk:"spicepod"`
 
 	// Runtime configuration
+	Registry           types.String  `tfsdk:"registry"`
+	Image              types.String  `tfsdk:"image"`
 	ImageTag           types.String  `tfsdk:"image_tag"`
+	UpdateChannel      types.String  `tfsdk:"update_channel"`
 	Replicas           types.Int64   `tfsdk:"replicas"`
 	NodeGroup          types.String  `tfsdk:"node_group"`
 	Region             types.String  `tfsdk:"region"`
@@ -257,6 +261,11 @@ resource "spiceai_app" "example" {
 				Optional:            true,
 				Computed:            true,
 			},
+			"tags": schema.MapAttribute{
+				MarkdownDescription: "Key-value tags for the app.",
+				Optional:            true,
+				ElementType:         types.StringType,
+			},
 
 			// Spicepod configuration
 			"spicepod": schema.StringAttribute{
@@ -267,10 +276,28 @@ resource "spiceai_app" "example" {
 			},
 
 			// Runtime configuration attributes
+			"registry": schema.StringAttribute{
+				MarkdownDescription: "Registry for the spiced image.",
+				Optional:            true,
+				Computed:            true,
+			},
+			"image": schema.StringAttribute{
+				MarkdownDescription: "Image name for the spiced container.",
+				Optional:            true,
+				Computed:            true,
+			},
 			"image_tag": schema.StringAttribute{
 				MarkdownDescription: "The Spice.ai runtime image tag to use for deployments (e.g., `latest`, `v0.18.0`).",
 				Optional:            true,
 				Computed:            true,
+			},
+			"update_channel": schema.StringAttribute{
+				MarkdownDescription: "Update channel for the spicepod. Valid values are `stable`, `nightly`, `internal`, `internal-sandbox`.",
+				Optional:            true,
+				Computed:            true,
+				Validators: []validator.String{
+					stringvalidator.OneOf("stable", "nightly", "internal", "internal-sandbox"),
+				},
 			},
 			"replicas": schema.Int64Attribute{
 				MarkdownDescription: "The number of replicas for the app. Must be between 1 and 10.",
@@ -353,6 +380,13 @@ func (r *AppResource) Create(ctx context.Context, req resource.CreateRequest, re
 		Name:        data.Name.ValueString(),
 		Description: data.Description.ValueString(),
 		Visibility:  data.Visibility.ValueString(),
+	}
+
+	// Add tags if provided
+	if !data.Tags.IsNull() && !data.Tags.IsUnknown() {
+		tags := make(map[string]string)
+		data.Tags.ElementsAs(ctx, &tags, false)
+		createReq.Tags = tags
 	}
 
 	app, err := r.client.CreateApp(ctx, createReq)
@@ -484,12 +518,16 @@ func (r *AppResource) ImportState(ctx context.Context, req resource.ImportStateR
 // hasConfigAttributes checks if any configuration attributes are set.
 func (r *AppResource) hasConfigAttributes(data *AppResourceModel) bool {
 	return !data.Spicepod.IsNull() ||
+		!data.Registry.IsNull() ||
+		!data.Image.IsNull() ||
 		!data.ImageTag.IsNull() ||
+		!data.UpdateChannel.IsNull() ||
 		!data.Replicas.IsNull() ||
 		!data.NodeGroup.IsNull() ||
 		!data.Region.IsNull() ||
 		!data.StorageClaimSizeGB.IsNull() ||
-		!data.ProductionBranch.IsNull()
+		!data.ProductionBranch.IsNull() ||
+		!data.Tags.IsNull()
 }
 
 // buildUpdateRequest creates an UpdateAppRequest from the model.
@@ -527,8 +565,20 @@ func (r *AppResource) buildUpdateRequest(data *AppResourceModel) *client.UpdateA
 		}
 	}
 
+	if !data.Registry.IsNull() && !data.Registry.IsUnknown() {
+		updateReq.Registry = data.Registry.ValueString()
+	}
+
+	if !data.Image.IsNull() && !data.Image.IsUnknown() {
+		updateReq.Image = data.Image.ValueString()
+	}
+
 	if !data.ImageTag.IsNull() && !data.ImageTag.IsUnknown() {
 		updateReq.ImageTag = data.ImageTag.ValueString()
+	}
+
+	if !data.UpdateChannel.IsNull() && !data.UpdateChannel.IsUnknown() {
+		updateReq.UpdateChannel = data.UpdateChannel.ValueString()
 	}
 
 	if !data.Replicas.IsNull() && !data.Replicas.IsUnknown() {
@@ -547,6 +597,16 @@ func (r *AppResource) buildUpdateRequest(data *AppResourceModel) *client.UpdateA
 	if !data.StorageClaimSizeGB.IsNull() && !data.StorageClaimSizeGB.IsUnknown() {
 		size := data.StorageClaimSizeGB.ValueFloat64()
 		updateReq.StorageClaimSizeGB = &size
+	}
+
+	if !data.Tags.IsNull() && !data.Tags.IsUnknown() {
+		tags := make(map[string]string)
+		for k, v := range data.Tags.Elements() {
+			if strVal, ok := v.(types.String); ok {
+				tags[k] = strVal.ValueString()
+			}
+		}
+		updateReq.Tags = tags
 	}
 
 	return updateReq
@@ -573,6 +633,17 @@ func (r *AppResource) mapAppToModel(data *AppResourceModel, app *client.App) {
 		data.ProductionBranch = types.StringValue(app.ProductionBranch)
 	} else {
 		data.ProductionBranch = types.StringNull()
+	}
+
+	// Map tags
+	if len(app.Tags) > 0 {
+		tagElements := make(map[string]attr.Value)
+		for k, v := range app.Tags {
+			tagElements[k] = types.StringValue(v)
+		}
+		data.Tags = types.MapValueMust(types.StringType, tagElements)
+	} else {
+		data.Tags = types.MapNull(types.StringType)
 	}
 
 	// Region can be at top level or inside config
@@ -604,10 +675,28 @@ func (r *AppResource) mapAppToModel(data *AppResourceModel, app *client.App) {
 
 	// Map config fields if available
 	if app.Config != nil {
+		if app.Config.Registry != "" {
+			data.Registry = types.StringValue(app.Config.Registry)
+		} else {
+			data.Registry = types.StringNull()
+		}
+
+		if app.Config.Image != "" {
+			data.Image = types.StringValue(app.Config.Image)
+		} else {
+			data.Image = types.StringNull()
+		}
+
 		if app.Config.ImageTag != "" {
 			data.ImageTag = types.StringValue(app.Config.ImageTag)
 		} else {
 			data.ImageTag = types.StringNull()
+		}
+
+		if app.Config.UpdateChannel != "" {
+			data.UpdateChannel = types.StringValue(app.Config.UpdateChannel)
+		} else {
+			data.UpdateChannel = types.StringNull()
 		}
 
 		if app.Config.Replicas > 0 {
@@ -652,7 +741,10 @@ func (r *AppResource) mapAppToModel(data *AppResourceModel, app *client.App) {
 		}
 	} else {
 		// No config returned, set all config fields to null
+		data.Registry = types.StringNull()
+		data.Image = types.StringNull()
 		data.ImageTag = types.StringNull()
+		data.UpdateChannel = types.StringNull()
 		data.Replicas = types.Int64Null()
 		data.NodeGroup = types.StringNull()
 		data.StorageClaimSizeGB = types.Float64Null()

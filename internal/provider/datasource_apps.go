@@ -11,6 +11,7 @@ import (
 
 	"terraform-provider-spiceai/internal/client"
 
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -44,12 +45,16 @@ type AppModel struct {
 	Description      types.String `tfsdk:"description"`
 	Visibility       types.String `tfsdk:"visibility"`
 	ProductionBranch types.String `tfsdk:"production_branch"`
+	Tags             types.Map    `tfsdk:"tags"`
 
 	// Spicepod configuration
 	Spicepod types.String `tfsdk:"spicepod"`
 
 	// Runtime configuration
+	Registry           types.String  `tfsdk:"registry"`
+	Image              types.String  `tfsdk:"image"`
 	ImageTag           types.String  `tfsdk:"image_tag"`
+	UpdateChannel      types.String  `tfsdk:"update_channel"`
 	Replicas           types.Int64   `tfsdk:"replicas"`
 	NodeGroup          types.String  `tfsdk:"node_group"`
 	Region             types.String  `tfsdk:"region"`
@@ -98,6 +103,11 @@ func (d *AppsDataSource) Schema(ctx context.Context, req datasource.SchemaReques
 							MarkdownDescription: "The production branch for the app.",
 							Computed:            true,
 						},
+						"tags": schema.MapAttribute{
+							MarkdownDescription: "Key-value tags for the app.",
+							Computed:            true,
+							ElementType:         types.StringType,
+						},
 
 						// Spicepod configuration
 						"spicepod": schema.StringAttribute{
@@ -106,8 +116,20 @@ func (d *AppsDataSource) Schema(ctx context.Context, req datasource.SchemaReques
 						},
 
 						// Runtime configuration attributes
+						"registry": schema.StringAttribute{
+							MarkdownDescription: "Registry for the spiced image.",
+							Computed:            true,
+						},
+						"image": schema.StringAttribute{
+							MarkdownDescription: "Image name for the spiced container.",
+							Computed:            true,
+						},
 						"image_tag": schema.StringAttribute{
 							MarkdownDescription: "The Spice.ai runtime image tag.",
+							Computed:            true,
+						},
+						"update_channel": schema.StringAttribute{
+							MarkdownDescription: "Update channel for the spicepod.",
 							Computed:            true,
 						},
 						"replicas": schema.Int64Attribute{
@@ -205,6 +227,17 @@ func (d *AppsDataSource) mapAppToModel(app *client.App) AppModel {
 		APIKey:           types.StringValue(app.APIKey),
 	}
 
+	// Map tags
+	if len(app.Tags) > 0 {
+		tagElements := make(map[string]attr.Value)
+		for k, v := range app.Tags {
+			tagElements[k] = types.StringValue(v)
+		}
+		model.Tags = types.MapValueMust(types.StringType, tagElements)
+	} else {
+		model.Tags = types.MapNull(types.StringType)
+	}
+
 	// Region can be at top level or inside config
 	if app.Region != "" {
 		model.Region = types.StringValue(app.Region)
@@ -216,7 +249,10 @@ func (d *AppsDataSource) mapAppToModel(app *client.App) AppModel {
 
 	// Map config fields if available
 	if app.Config != nil {
+		model.Registry = types.StringValue(app.Config.Registry)
+		model.Image = types.StringValue(app.Config.Image)
 		model.ImageTag = types.StringValue(app.Config.ImageTag)
+		model.UpdateChannel = types.StringValue(app.Config.UpdateChannel)
 		model.Replicas = types.Int64Value(int64(app.Config.Replicas))
 		model.NodeGroup = types.StringValue(app.Config.NodeGroup)
 		model.StorageClaimSizeGB = types.Float64Value(app.Config.StorageClaimSizeGB)
@@ -236,7 +272,10 @@ func (d *AppsDataSource) mapAppToModel(app *client.App) AppModel {
 			model.Spicepod = types.StringNull()
 		}
 	} else {
+		model.Registry = types.StringNull()
+		model.Image = types.StringNull()
 		model.ImageTag = types.StringNull()
+		model.UpdateChannel = types.StringNull()
 		model.Replicas = types.Int64Null()
 		model.NodeGroup = types.StringNull()
 		model.StorageClaimSizeGB = types.Float64Null()

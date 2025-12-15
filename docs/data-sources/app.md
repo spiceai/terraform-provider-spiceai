@@ -70,12 +70,16 @@ output "app_api_key" {
 - `cluster_id` (String) The Kubernetes cluster identifier where the app is deployed.
 - `created_at` (String) The timestamp when the app was created.
 - `description` (String) A description of the app.
+- `image` (String) Image name for the spiced container.
 - `image_tag` (String) The Spice.ai runtime image tag.
 - `name` (String) The name of the app.
 - `node_group` (String) The node group for the app.
 - `production_branch` (String) The production branch for the app.
 - `region` (String) The region where the app is deployed.
+- `registry` (String) Registry for the spiced image.
 - `replicas` (Number) The number of replicas.
 - `spicepod` (String) The spicepod configuration as a JSON string.
 - `storage_claim_size_gb` (Number) The storage claim size in GB.
+- `tags` (Map of String) Key-value tags for the app.
+- `update_channel` (String) Update channel for the spicepod.
 - `visibility` (String) The visibility of the app (`public` or `private`).

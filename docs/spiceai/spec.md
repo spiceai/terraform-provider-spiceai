@@ -188,9 +188,16 @@ An **App** represents a Spice AI application. Apps contain configuration, are de
   "region": "us-east-2",
   "cluster_id": "cluster-abc123",
   "api_key": "sk_live_xxxxx",
+  "tags": {
+    "environment": "production",
+    "team": "data"
+  },
   "config": {
     "spicepod": { ... },
+    "registry": "ghcr.io/spiceai",
+    "image": "spiceai-enterprise",
     "image_tag": "1.5.0-models",
+    "update_channel": "stable",
     "replicas": 2,
     "node_group": "standard",
     "storage_claim_size_gb": 10
@@ -210,6 +217,7 @@ An **App** represents a Spice AI application. Apps contain configuration, are de
 | `region` | string | No | Deployment region (e.g., `us-east-2`) |
 | `cluster_id` | string | Read-only | Kubernetes cluster identifier |
 | `api_key` | string | Read-only | Primary API key for runtime |
+| `tags` | object | No | Key-value tags for the app |
 | `config` | object | No | App configuration (see Config Object) |
 
 #### Config Object
@@ -217,7 +225,10 @@ An **App** represents a Spice AI application. Apps contain configuration, are de
 | Field | Type | Description |
 |-------|------|-------------|
 | `spicepod` | object | Spicepod configuration manifest |
+| `registry` | string | Registry for the spiced image (e.g., `ghcr.io/spiceai`) |
+| `image` | string | Image name for the spiced container (e.g., `spiceai-enterprise`) |
 | `image_tag` | string | Spice runtime container image tag |
+| `update_channel` | string | Update channel: `stable`, `nightly`, `internal`, or `internal-sandbox` |
 | `replicas` | integer | Number of runtime replicas (1-10) |
 | `node_group` | string | Compute node group |
 | `storage_claim_size_gb` | number | Persistent storage size in GB |
@@ -247,7 +258,10 @@ Returns all apps in the authenticated organization.
       "created_at": "2024-01-15T10:30:00Z",
       "region": "us-east-2",
       "cluster_id": "cluster-abc123",
-      "api_key": "sk_live_xxxxx"
+      "api_key": "sk_live_xxxxx",
+      "tags": {
+        "environment": "production"
+      }
     }
   ]
 }
@@ -272,6 +286,7 @@ Creates a new app in the authenticated organization.
 | `name` | string | Yes | 4+ chars, pattern: `^[a-zA-Z0-9-]+$` | Unique app name |
 | `description` | string | No | - | App description |
 | `visibility` | string | No | `public` \| `private` | Default: `private` |
+| `tags` | object | No | Key-value pairs | Custom tags for the app |
 
 **Example Request:**
 
@@ -279,7 +294,11 @@ Creates a new app in the authenticated organization.
 {
   "name": "my-new-app",
   "description": "A new Spice AI application",
-  "visibility": "private"
+  "visibility": "private",
+  "tags": {
+    "environment": "staging",
+    "team": "engineering"
+  }
 }
 ```
 
@@ -335,6 +354,10 @@ Returns details for a specific app, including its configuration.
   "created_at": "2024-01-15T10:30:00Z",
   "production_branch": "main",
   "api_key": "sk_live_xxxxx",
+  "tags": {
+    "environment": "production",
+    "team": "data"
+  },
   "config": {
     "spicepod": {
       "version": "v1",
@@ -342,7 +365,10 @@ Returns details for a specific app, including its configuration.
       "name": "my-app",
       "datasets": [...]
     },
+    "registry": "ghcr.io/spiceai",
+    "image": "spiceai-enterprise",
     "image_tag": "1.5.0-models",
+    "update_channel": "stable",
     "replicas": 2,
     "region": "us-east-2",
     "node_group": "standard",
@@ -376,8 +402,12 @@ Updates an app's metadata and configuration.
 | `description` | string | App description |
 | `visibility` | string | `public` or `private` |
 | `production_branch` | string | Git branch for production |
+| `tags` | object | Key-value tags for the app |
 | `spicepod` | string \| object | Spicepod config (YAML string or JSON object) |
+| `registry` | string | Registry for the spiced image |
+| `image` | string | Image name for the spiced container |
 | `image_tag` | string | Runtime container image tag |
+| `update_channel` | string | Update channel: `stable`, `nightly`, `internal`, or `internal-sandbox` |
 | `replicas` | integer | Number of replicas (1-10) |
 | `node_group` | string | Compute node group |
 | `region` | string | Deployment region |
@@ -388,6 +418,10 @@ Updates an app's metadata and configuration.
 ```json
 {
   "description": "Updated description",
+  "tags": {
+    "environment": "production",
+    "version": "2.0"
+  },
   "replicas": 3,
   "spicepod": {
     "version": "v1",
@@ -1427,6 +1461,12 @@ The OpenAPI spec is generated from JSDoc `@swagger` annotations in the route han
 ---
 
 ## Changelog
+
+### 2025-12-12
+
+- Added `registry`, `image`, and `update_channel` fields to App config
+- `update_channel` supports values: `stable`, `nightly`, `internal`, `internal-sandbox`
+- Added `tags` field to App object for custom key-value metadata
 
 ### 2025-12-11
 
