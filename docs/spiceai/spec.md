@@ -1128,6 +1128,7 @@ Regions define where apps can be deployed.
   "provider": "aws",
   "providerName": "AWS",
   "isDefault": true,
+  "disabled": false,
   "cname": "us-east-2.spice.cloud"
 }
 ```
@@ -1161,6 +1162,7 @@ Returns available deployment regions.
       "provider": "aws",
       "providerName": "AWS",
       "isDefault": true,
+      "disabled": false,
       "cname": "us-east-2.spice.cloud"
     },
     {
@@ -1169,6 +1171,7 @@ Returns available deployment regions.
       "provider": "aws",
       "providerName": "AWS",
       "isDefault": false,
+      "disabled": false,
       "cname": "us-west-2.spice.cloud"
     }
   ],
@@ -1444,7 +1447,7 @@ The spicepod is the core configuration for a Spice AI app.
 
 ## OpenAPI Specification
 
-The complete OpenAPI 3.0 specification is auto-generated from API route handlers and available at:
+The complete OpenAPI 3.1 specification is auto-generated from API route handlers and available at:
 
 ```
 GET /v1/docs
@@ -1458,9 +1461,51 @@ This returns the JSON OpenAPI document that can be used with code generators and
 
 The OpenAPI spec is generated from JSDoc `@swagger` annotations in the route handlers.
 
+### Component Schemas
+
+The OpenAPI spec defines reusable schemas in `components.schemas`:
+
+| Schema | Description |
+|--------|-------------|
+| `App` | Basic app object (used in list/create responses) |
+| `AppWithConfig` | Full app object with config (used in get/update responses) |
+| `Secret` | Secret object with masked value |
+| `Deployment` | Deployment object with status and metadata |
+| `ApiKeys` | API keys object with primary and secondary keys |
+| `ApiKeysRegenerated` | API keys response after regeneration |
+
+### Security Scheme
+
+The spec defines a `BearerAuth` security scheme for OAuth 2.0 JWT authentication:
+
+```yaml
+securitySchemes:
+  BearerAuth:
+    type: http
+    scheme: bearer
+    bearerFormat: JWT
+```
+
+All protected endpoints reference this scheme via `security: [{ BearerAuth: [] }]`.
+
+### Regenerating the Spec
+
+To regenerate the OpenAPI spec after modifying route handlers:
+
+```bash
+cd apps/api
+yarn openapi:generate
+```
+
 ---
 
 ## Changelog
+
+### 2025-12-15
+
+- Added reusable component schemas to OpenAPI spec: `App`, `AppWithConfig`, `Secret`, `Deployment`, `ApiKeys`, `ApiKeysRegenerated`
+- Added `BearerAuth` security scheme definition to OpenAPI components
+- Updated API endpoints to reference component schemas via `$ref` for better code generation support
 
 ### 2025-12-12
 

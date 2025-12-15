@@ -41,6 +41,7 @@ type RegionModel struct {
 	Provider     types.String `tfsdk:"provider"`
 	ProviderName types.String `tfsdk:"provider_name"`
 	IsDefault    types.Bool   `tfsdk:"is_default"`
+	Disabled     types.Bool   `tfsdk:"disabled"`
 	Cname        types.String `tfsdk:"cname"`
 }
 
@@ -84,6 +85,10 @@ func (d *RegionsDataSource) Schema(ctx context.Context, req datasource.SchemaReq
 						},
 						"is_default": schema.BoolAttribute{
 							MarkdownDescription: "Whether this is the default region.",
+							Computed:            true,
+						},
+						"disabled": schema.BoolAttribute{
+							MarkdownDescription: "Whether this region is disabled.",
 							Computed:            true,
 						},
 						"cname": schema.StringAttribute{
@@ -142,6 +147,7 @@ func (d *RegionsDataSource) Read(ctx context.Context, req datasource.ReadRequest
 			Provider:     types.StringValue(region.Provider),
 			ProviderName: types.StringValue(region.ProviderName),
 			IsDefault:    types.BoolValue(region.IsDefault),
+			Disabled:     types.BoolValue(region.Disabled),
 			Cname:        types.StringValue(region.CName),
 		}
 	}

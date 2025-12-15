@@ -249,6 +249,7 @@ type Region struct {
 	Provider     string `json:"provider"`
 	ProviderName string `json:"providerName"`
 	IsDefault    bool   `json:"isDefault"`
+	Disabled     bool   `json:"disabled"`
 	CName        string `json:"cname"`
 }
 

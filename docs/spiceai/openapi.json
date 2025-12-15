@@ -36,19 +36,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "api_key": {
-                      "type": "string",
-                      "nullable": true,
-                      "description": "Primary API key"
-                    },
-                    "api_key_2": {
-                      "type": "string",
-                      "nullable": true,
-                      "description": "Secondary API key (for key rotation)"
-                    }
-                  }
+                  "$ref": "#/components/schemas/ApiKeys"
                 }
               }
             }
@@ -108,24 +96,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "api_key": {
-                      "type": "string",
-                      "nullable": true,
-                      "description": "Primary API key"
-                    },
-                    "api_key_2": {
-                      "type": "string",
-                      "nullable": true,
-                      "description": "Secondary API key"
-                    },
-                    "regenerated_key": {
-                      "type": "integer",
-                      "enum": [0, 1, 2],
-                      "description": "Which key was regenerated (0 = both)"
-                    }
-                  }
+                  "$ref": "#/components/schemas/ApiKeysRegenerated"
                 }
               }
             }
@@ -201,52 +172,7 @@
                     "deployments": {
                       "type": "array",
                       "items": {
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": "integer"
-                          },
-                          "status": {
-                            "type": "string",
-                            "enum": [
-                              "queued",
-                              "in_progress",
-                              "succeeded",
-                              "failed",
-                              "created"
-                            ]
-                          },
-                          "created_at": {
-                            "type": "string",
-                            "format": "date-time"
-                          },
-                          "started_at": {
-                            "type": "string",
-                            "format": "date-time"
-                          },
-                          "finished_at": {
-                            "type": "string",
-                            "format": "date-time"
-                          },
-                          "image_tag": {
-                            "type": "string"
-                          },
-                          "replicas": {
-                            "type": "integer"
-                          },
-                          "commit_sha": {
-                            "type": "string"
-                          },
-                          "commit_message": {
-                            "type": "string"
-                          },
-                          "error_message": {
-                            "type": "string"
-                          },
-                          "creation_source": {
-                            "type": "string"
-                          }
-                        }
+                        "$ref": "#/components/schemas/Deployment"
                       }
                     }
                   }
@@ -329,25 +255,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "id": {
-                      "type": "integer"
-                    },
-                    "status": {
-                      "type": "string"
-                    },
-                    "created_at": {
-                      "type": "string",
-                      "format": "date-time"
-                    },
-                    "image_tag": {
-                      "type": "string"
-                    },
-                    "replicas": {
-                      "type": "integer"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Deployment"
                 }
               }
             }
@@ -589,7 +497,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/App"
+                  "$ref": "#/components/schemas/AppWithConfig"
                 }
               }
             }
@@ -680,27 +588,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "id": {
-                      "type": "integer"
-                    },
-                    "name": {
-                      "type": "string"
-                    },
-                    "value": {
-                      "type": "string",
-                      "description": "Always masked with asterisks"
-                    },
-                    "created_at": {
-                      "type": "string",
-                      "format": "date-time"
-                    },
-                    "updated_at": {
-                      "type": "string",
-                      "format": "date-time"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Secret"
                 }
               }
             }
@@ -793,27 +681,7 @@
                     "secrets": {
                       "type": "array",
                       "items": {
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": "integer"
-                          },
-                          "name": {
-                            "type": "string"
-                          },
-                          "value": {
-                            "type": "string",
-                            "description": "Always masked with asterisks"
-                          },
-                          "created_at": {
-                            "type": "string",
-                            "format": "date-time"
-                          },
-                          "updated_at": {
-                            "type": "string",
-                            "format": "date-time"
-                          }
-                        }
+                        "$ref": "#/components/schemas/Secret"
                       }
                     }
                   }
@@ -880,27 +748,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "id": {
-                      "type": "integer"
-                    },
-                    "name": {
-                      "type": "string"
-                    },
-                    "value": {
-                      "type": "string",
-                      "description": "Always masked with asterisks"
-                    },
-                    "created_at": {
-                      "type": "string",
-                      "format": "date-time"
-                    },
-                    "updated_at": {
-                      "type": "string",
-                      "format": "date-time"
-                    }
-                  }
+                  "$ref": "#/components/schemas/Secret"
                 }
               }
             }
@@ -1520,6 +1368,10 @@
                           },
                           "disabled": {
                             "type": "boolean"
+                          },
+                          "cname": {
+                            "type": "string",
+                            "description": "CNAME for the region (e.g., us-east-2.spice.cloud)"
                           }
                         }
                       }
@@ -1544,6 +1396,296 @@
       }
     }
   },
-  "components": {},
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "OAuth 2.0 access token obtained from the Spice.ai authentication service"
+      }
+    },
+    "schemas": {
+      "App": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Unique identifier for the app"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the app"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true,
+            "description": "Description of the app"
+          },
+          "visibility": {
+            "type": "string",
+            "enum": ["public", "private"],
+            "description": "Visibility setting for the app"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Timestamp when the app was created"
+          },
+          "region": {
+            "type": "string",
+            "nullable": true,
+            "description": "Region where the app is deployed"
+          },
+          "cluster_id": {
+            "type": "string",
+            "nullable": true,
+            "description": "Cluster ID where the app is deployed"
+          },
+          "api_key": {
+            "type": "string",
+            "nullable": true,
+            "description": "Primary API key for the app"
+          },
+          "tags": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "nullable": true,
+            "description": "Key-value tags for the app"
+          }
+        }
+      },
+      "AppWithConfig": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Unique identifier for the app"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the app"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true,
+            "description": "Description of the app"
+          },
+          "visibility": {
+            "type": "string",
+            "enum": ["public", "private"],
+            "description": "Visibility setting for the app"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Timestamp when the app was created"
+          },
+          "production_branch": {
+            "type": "string",
+            "nullable": true,
+            "description": "Production branch for the app"
+          },
+          "api_key": {
+            "type": "string",
+            "nullable": true,
+            "description": "Primary API key for the app"
+          },
+          "tags": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "nullable": true,
+            "description": "Key-value tags for the app"
+          },
+          "config": {
+            "type": "object",
+            "properties": {
+              "spicepod": {
+                "type": "object",
+                "nullable": true,
+                "description": "Spicepod configuration"
+              },
+              "registry": {
+                "type": "string",
+                "nullable": true,
+                "description": "Registry for the spiced image"
+              },
+              "image": {
+                "type": "string",
+                "nullable": true,
+                "description": "Image name for the spiced container"
+              },
+              "image_tag": {
+                "type": "string",
+                "nullable": true,
+                "description": "Spice.ai runtime image tag"
+              },
+              "update_channel": {
+                "type": "string",
+                "enum": ["stable", "nightly", "internal", "internal-sandbox"],
+                "nullable": true,
+                "description": "Update channel for the spicepod"
+              },
+              "replicas": {
+                "type": "integer",
+                "description": "Number of replicas"
+              },
+              "region": {
+                "type": "string",
+                "nullable": true,
+                "description": "Region where the app is deployed"
+              },
+              "node_group": {
+                "type": "string",
+                "nullable": true,
+                "description": "Node group for the app"
+              },
+              "storage_claim_size_gb": {
+                "type": "number",
+                "nullable": true,
+                "description": "Storage claim size in GB"
+              }
+            }
+          }
+        }
+      },
+      "Secret": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Unique identifier for the secret"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the secret"
+          },
+          "value": {
+            "type": "string",
+            "description": "Always masked with asterisks"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Timestamp when the secret was created"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Timestamp when the secret was last updated"
+          }
+        }
+      },
+      "Deployment": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Unique identifier for the deployment"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["queued", "in_progress", "succeeded", "failed", "created"],
+            "description": "Current status of the deployment"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Timestamp when the deployment was created"
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "Timestamp when the deployment started"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "Timestamp when the deployment finished"
+          },
+          "image_tag": {
+            "type": "string",
+            "nullable": true,
+            "description": "Spice.ai runtime image tag used"
+          },
+          "replicas": {
+            "type": "integer",
+            "description": "Number of replicas"
+          },
+          "branch": {
+            "type": "string",
+            "nullable": true,
+            "description": "Git branch name"
+          },
+          "commit_sha": {
+            "type": "string",
+            "nullable": true,
+            "description": "Git commit SHA"
+          },
+          "commit_message": {
+            "type": "string",
+            "nullable": true,
+            "description": "Git commit message"
+          },
+          "error_message": {
+            "type": "string",
+            "nullable": true,
+            "description": "Error message if deployment failed"
+          },
+          "creation_source": {
+            "type": "string",
+            "nullable": true,
+            "description": "Source that triggered the deployment"
+          },
+          "created_by": {
+            "type": "integer",
+            "nullable": true,
+            "description": "User ID who created the deployment"
+          }
+        }
+      },
+      "ApiKeys": {
+        "type": "object",
+        "properties": {
+          "api_key": {
+            "type": "string",
+            "nullable": true,
+            "description": "Primary API key"
+          },
+          "api_key_2": {
+            "type": "string",
+            "nullable": true,
+            "description": "Secondary API key (for key rotation)"
+          }
+        }
+      },
+      "ApiKeysRegenerated": {
+        "type": "object",
+        "properties": {
+          "api_key": {
+            "type": "string",
+            "nullable": true,
+            "description": "Primary API key"
+          },
+          "api_key_2": {
+            "type": "string",
+            "nullable": true,
+            "description": "Secondary API key"
+          },
+          "regenerated_key": {
+            "type": "integer",
+            "enum": [0, 1, 2],
+            "description": "Which key was regenerated (0 = both)"
+          }
+        }
+      }
+    }
+  },
   "tags": []
 }
