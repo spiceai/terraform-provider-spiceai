@@ -635,16 +635,20 @@ func (r *AppResource) mapAppToModel(data *AppResourceModel, app *client.App) {
 		data.ProductionBranch = types.StringNull()
 	}
 
-	// Map tags
-	if len(app.Tags) > 0 {
-		tagElements := make(map[string]attr.Value)
-		for k, v := range app.Tags {
-			tagElements[k] = types.StringValue(v)
+	// Map tags - only update if tags were configured by the user
+	// If tags is null in config, preserve null to avoid "inconsistent result after apply" error
+	if !data.Tags.IsNull() {
+		if len(app.Tags) > 0 {
+			tagElements := make(map[string]attr.Value)
+			for k, v := range app.Tags {
+				tagElements[k] = types.StringValue(v)
+			}
+			data.Tags = types.MapValueMust(types.StringType, tagElements)
+		} else {
+			data.Tags = types.MapNull(types.StringType)
 		}
-		data.Tags = types.MapValueMust(types.StringType, tagElements)
-	} else {
-		data.Tags = types.MapNull(types.StringType)
 	}
+	// If data.Tags is null (not configured), leave it as null
 
 	// Region can be at top level or inside config
 	if app.Region != "" {
