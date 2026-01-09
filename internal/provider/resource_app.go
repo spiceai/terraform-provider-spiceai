@@ -432,8 +432,8 @@ func (r *AppResource) Create(ctx context.Context, req resource.CreateRequest, re
 		})
 	}
 
-	// Map response to model
-	r.mapAppToModel(&data, app)
+	// Map response to model, preserving user's spicepod to avoid inconsistent result errors
+	r.mapAppToModel(&data, app, true)
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
@@ -463,7 +463,8 @@ func (r *AppResource) Read(ctx context.Context, req resource.ReadRequest, resp *
 		return
 	}
 
-	r.mapAppToModel(&data, app)
+	// During Read, use API values (don't preserve user spicepod)
+	r.mapAppToModel(&data, app, false)
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
@@ -490,7 +491,8 @@ func (r *AppResource) Update(ctx context.Context, req resource.UpdateRequest, re
 		return
 	}
 
-	r.mapAppToModel(&data, app)
+	// Map response to model, preserving user's spicepod to avoid inconsistent result errors
+	r.mapAppToModel(&data, app, true)
 
 	tflog.Trace(ctx, "updated app", map[string]interface{}{
 		"id":   app.ID,
@@ -627,7 +629,11 @@ func (r *AppResource) buildUpdateRequest(data *AppResourceModel) *client.UpdateA
 }
 
 // mapAppToModel maps an API App response to the Terraform model.
-func (r *AppResource) mapAppToModel(data *AppResourceModel, app *client.App) {
+// mapAppToModel maps the API response to the Terraform model.
+// If preserveUserSpicepod is true, the user's original spicepod value is preserved
+// (used during Create/Update to avoid "inconsistent result after apply" errors).
+// If false, the API response is used (for Read operations).
+func (r *AppResource) mapAppToModel(data *AppResourceModel, app *client.App, preserveUserSpicepod bool) {
 	data.ID = types.StringValue(strconv.FormatInt(app.ID, 10))
 	data.Name = types.StringValue(app.Name)
 
@@ -741,24 +747,24 @@ func (r *AppResource) mapAppToModel(data *AppResourceModel, app *client.App) {
 		if app.Config.Spicepod != nil {
 			if spicepodBytes, err := json.Marshal(app.Config.Spicepod); err == nil {
 				apiSpicepodJSON := string(spicepodBytes)
-				// If user's value is semantically equal to API response, preserve user's format
-				if !data.Spicepod.IsNull() && !data.Spicepod.IsUnknown() {
-					userNormalized := normalizeSpicepodToJSON(data.Spicepod.ValueString())
-					apiNormalized := normalizeSpicepodToJSON(apiSpicepodJSON)
-					if userNormalized == apiNormalized {
-						// Keep the user's original value (YAML or JSON) - don't overwrite
-					} else {
-						// Values differ semantically, use API response
-						data.Spicepod = SpicepodStringValue{StringValue: types.StringValue(apiSpicepodJSON)}
-					}
+				// During Create/Update, preserve the user's original spicepod value
+				// to avoid "inconsistent result after apply" errors from Terraform.
+				// The semantic equality will handle comparison during plan/refresh.
+				if preserveUserSpicepod && !data.Spicepod.IsNull() && !data.Spicepod.IsUnknown() {
+					// Keep the user's original value (YAML or JSON) - don't overwrite
 				} else {
+					// During Read or when user didn't provide a value, use API response
 					data.Spicepod = SpicepodStringValue{StringValue: types.StringValue(apiSpicepodJSON)}
 				}
 			} else {
-				data.Spicepod = SpicepodStringValue{StringValue: types.StringNull()}
+				if !preserveUserSpicepod {
+					data.Spicepod = SpicepodStringValue{StringValue: types.StringNull()}
+				}
 			}
 		} else {
-			data.Spicepod = SpicepodStringValue{StringValue: types.StringNull()}
+			if !preserveUserSpicepod {
+				data.Spicepod = SpicepodStringValue{StringValue: types.StringNull()}
+			}
 		}
 	} else {
 		// No config returned, set all config fields to null

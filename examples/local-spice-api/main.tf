@@ -41,7 +41,7 @@ resource "spiceai_app" "test" {
   })
 
   # # Runtime configuration
-  image_tag = "1.10.4-enterprise-models"
+  image_tag = var.image_tag
   replicas  = 1
   # production_branch = "main"
 }
