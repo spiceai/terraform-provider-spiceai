@@ -18,11 +18,15 @@ provider "spiceai" {
   # api_endpoint  = "https://api.spice.ai" # Optional, defaults to production API
 }
 
+# Get available regions
+data "spiceai_regions" "available" {}
+
 # Create a new Spice.ai app with configuration
 resource "spiceai_app" "example" {
   name        = "my-terraform-app"
   description = "An app created and managed by Terraform"
   visibility  = "private"
+  cname       = data.spiceai_regions.available.regions[0].cname # Required: region identifier
 
   # Spicepod configuration (YAML or JSON string)
   spicepod = <<-YAML
@@ -39,7 +43,7 @@ resource "spiceai_app" "example" {
   # Runtime configuration
   image_tag         = "latest"
   replicas          = 1
-  region            = "us-east-1"
+  region            = "us-east-2"
   production_branch = "main"
 }
 

@@ -86,6 +86,7 @@ Read-Only:
 
 - `api_key` (String, Sensitive) The API key for the app.
 - `cluster_id` (String) The Kubernetes cluster identifier where the app is deployed.
+- `cname` (String) The region identifier (cname) for the app.
 - `created_at` (String) The timestamp when the app was created.
 - `description` (String) A description of the app.
 - `id` (String) The unique identifier of the app.

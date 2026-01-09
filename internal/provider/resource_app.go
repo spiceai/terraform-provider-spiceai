@@ -166,6 +166,9 @@ type AppResourceModel struct {
 	ProductionBranch types.String `tfsdk:"production_branch"`
 	Tags             types.Map    `tfsdk:"tags"`
 
+	// Region identifier (required for create)
+	Cname types.String `tfsdk:"cname"`
+
 	// Spicepod configuration
 	Spicepod SpicepodStringValue `tfsdk:"spicepod"`
 
@@ -202,6 +205,7 @@ resource "spiceai_app" "example" {
   name        = "my-terraform-app"
   description = "An app created and managed by Terraform"
   visibility  = "private"
+  cname       = "us-east-2.spice.cloud"  # Required: region identifier from spiceai_regions data source
 
   # Spicepod configuration (YAML or JSON)
   spicepod = <<-YAML
@@ -219,7 +223,7 @@ resource "spiceai_app" "example" {
   image_tag             = "latest"
   replicas              = 2
   node_group            = "default"
-  region                = "us-east-1"
+  region                = "us-east-2"
   storage_claim_size_gb = 10.0
   production_branch     = "main"
 }
@@ -265,6 +269,15 @@ resource "spiceai_app" "example" {
 				MarkdownDescription: "Key-value tags for the app.",
 				Optional:            true,
 				ElementType:         types.StringType,
+			},
+
+			// Region identifier (required for create)
+			"cname": schema.StringAttribute{
+				MarkdownDescription: "The region identifier (cname) for the app. This is required when creating an app and determines where the app is deployed. Get available values from the `spiceai_regions` data source. Changing this forces a new resource to be created.",
+				Required:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 
 			// Spicepod configuration
@@ -378,6 +391,7 @@ func (r *AppResource) Create(ctx context.Context, req resource.CreateRequest, re
 	// Step 1: Create the app
 	createReq := &client.CreateAppRequest{
 		Name:        data.Name.ValueString(),
+		Cname:       data.Cname.ValueString(),
 		Description: data.Description.ValueString(),
 		Visibility:  data.Visibility.ValueString(),
 	}
@@ -650,10 +664,13 @@ func (r *AppResource) mapAppToModel(data *AppResourceModel, app *client.App) {
 	}
 	// If data.Tags is null (not configured), leave it as null
 
-	// Region can be at top level or inside config
-	if app.Region != "" {
-		data.Region = types.StringValue(app.Region)
-	} else if app.Config != nil && app.Config.Region != "" {
+	// Map cname from API response
+	if app.Cname != "" {
+		data.Cname = types.StringValue(app.Cname)
+	}
+
+	// Region is inside config
+	if app.Config != nil && app.Config.Region != "" {
 		data.Region = types.StringValue(app.Config.Region)
 	} else {
 		data.Region = types.StringNull()

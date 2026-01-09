@@ -158,7 +158,7 @@ type App struct {
 	Description      string            `json:"description,omitempty"`
 	Visibility       string            `json:"visibility,omitempty"`
 	CreatedAt        string            `json:"created_at,omitempty"`
-	Region           string            `json:"region,omitempty"`
+	Cname            string            `json:"cname,omitempty"`
 	ClusterID        string            `json:"cluster_id,omitempty"`
 	ProductionBranch string            `json:"production_branch,omitempty"`
 	APIKey           string            `json:"api_key,omitempty"`
@@ -182,6 +182,7 @@ type AppConfig struct {
 // CreateAppRequest represents the request to create an app.
 type CreateAppRequest struct {
 	Name        string            `json:"name"`
+	Cname       string            `json:"cname"`
 	Description string            `json:"description,omitempty"`
 	Visibility  string            `json:"visibility,omitempty"`
 	Tags        map[string]string `json:"tags,omitempty"`
