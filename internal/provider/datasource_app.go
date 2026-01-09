@@ -41,6 +41,7 @@ type AppDataSourceModel struct {
 	Visibility       types.String `tfsdk:"visibility"`
 	ProductionBranch types.String `tfsdk:"production_branch"`
 	Tags             types.Map    `tfsdk:"tags"`
+	Cname            types.String `tfsdk:"cname"`
 
 	// Spicepod configuration
 	Spicepod types.String `tfsdk:"spicepod"`
@@ -97,6 +98,10 @@ func (d *AppDataSource) Schema(ctx context.Context, req datasource.SchemaRequest
 				MarkdownDescription: "Key-value tags for the app.",
 				Computed:            true,
 				ElementType:         types.StringType,
+			},
+			"cname": schema.StringAttribute{
+				MarkdownDescription: "The region identifier (cname) for the app.",
+				Computed:            true,
 			},
 
 			// Spicepod configuration
@@ -233,10 +238,15 @@ func (d *AppDataSource) mapAppToModel(data *AppDataSourceModel, app *client.App)
 	data.ClusterID = types.StringValue(app.ClusterID)
 	data.APIKey = types.StringValue(app.APIKey)
 
-	// Region can be at top level or inside config
-	if app.Region != "" {
-		data.Region = types.StringValue(app.Region)
-	} else if app.Config != nil && app.Config.Region != "" {
+	// Map cname
+	if app.Cname != "" {
+		data.Cname = types.StringValue(app.Cname)
+	} else {
+		data.Cname = types.StringNull()
+	}
+
+	// Region is inside config
+	if app.Config != nil && app.Config.Region != "" {
 		data.Region = types.StringValue(app.Config.Region)
 	} else {
 		data.Region = types.StringNull()

@@ -3,6 +3,7 @@ resource "spiceai_app" "basic" {
   name        = "my-basic-app"
   description = "A basic Spice.ai app"
   visibility  = "private"
+  cname       = "us-east-2.spice.cloud" # Required: region identifier from spiceai_regions data source
 }
 
 # Full app with spicepod and runtime configuration
@@ -10,6 +11,7 @@ resource "spiceai_app" "full" {
   name        = "my-full-app"
   description = "A fully configured Spice.ai app"
   visibility  = "private"
+  cname       = "us-east-2.spice.cloud"
 
   # Spicepod configuration (YAML or JSON)
   spicepod = <<-YAML
@@ -30,7 +32,7 @@ resource "spiceai_app" "full" {
   image_tag             = "latest"
   replicas              = 2
   node_group            = "default"
-  region                = "us-east-1"
+  region                = "us-east-2"
   storage_claim_size_gb = 10.0
   production_branch     = "main"
 }
@@ -40,6 +42,7 @@ resource "spiceai_app" "json_config" {
   name        = "my-json-app"
   description = "An app with JSON spicepod configuration"
   visibility  = "public"
+  cname       = "us-west-2.spice.cloud"
 
   spicepod = jsonencode({
     version = "v1beta1"
@@ -54,4 +57,14 @@ resource "spiceai_app" "json_config" {
   })
 
   replicas = 1
+}
+
+# App using regions data source to get cname
+data "spiceai_regions" "available" {}
+
+resource "spiceai_app" "with_region_lookup" {
+  name        = "my-dynamic-region-app"
+  description = "An app using dynamic region lookup"
+  visibility  = "private"
+  cname       = data.spiceai_regions.available.regions[0].cname
 }

@@ -166,6 +166,9 @@ type AppResourceModel struct {
 	ProductionBranch types.String `tfsdk:"production_branch"`
 	Tags             types.Map    `tfsdk:"tags"`
 
+	// Region identifier (required for create)
+	Cname types.String `tfsdk:"cname"`
+
 	// Spicepod configuration
 	Spicepod SpicepodStringValue `tfsdk:"spicepod"`
 
@@ -202,6 +205,7 @@ resource "spiceai_app" "example" {
   name        = "my-terraform-app"
   description = "An app created and managed by Terraform"
   visibility  = "private"
+  cname       = "us-east-2.spice.cloud"  # Required: region identifier from spiceai_regions data source
 
   # Spicepod configuration (YAML or JSON)
   spicepod = <<-YAML
@@ -219,7 +223,7 @@ resource "spiceai_app" "example" {
   image_tag             = "latest"
   replicas              = 2
   node_group            = "default"
-  region                = "us-east-1"
+  region                = "us-east-2"
   storage_claim_size_gb = 10.0
   production_branch     = "main"
 }
@@ -265,6 +269,15 @@ resource "spiceai_app" "example" {
 				MarkdownDescription: "Key-value tags for the app.",
 				Optional:            true,
 				ElementType:         types.StringType,
+			},
+
+			// Region identifier (required for create)
+			"cname": schema.StringAttribute{
+				MarkdownDescription: "The region identifier (cname) for the app. This is required when creating an app and determines where the app is deployed. Get available values from the `spiceai_regions` data source. Changing this forces a new resource to be created.",
+				Required:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 
 			// Spicepod configuration
@@ -378,6 +391,7 @@ func (r *AppResource) Create(ctx context.Context, req resource.CreateRequest, re
 	// Step 1: Create the app
 	createReq := &client.CreateAppRequest{
 		Name:        data.Name.ValueString(),
+		Cname:       data.Cname.ValueString(),
 		Description: data.Description.ValueString(),
 		Visibility:  data.Visibility.ValueString(),
 	}
@@ -418,8 +432,8 @@ func (r *AppResource) Create(ctx context.Context, req resource.CreateRequest, re
 		})
 	}
 
-	// Map response to model
-	r.mapAppToModel(&data, app)
+	// Map response to model, preserving user's spicepod to avoid inconsistent result errors
+	r.mapAppToModel(&data, app, true)
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
@@ -449,7 +463,8 @@ func (r *AppResource) Read(ctx context.Context, req resource.ReadRequest, resp *
 		return
 	}
 
-	r.mapAppToModel(&data, app)
+	// During Read, use API values (don't preserve user spicepod)
+	r.mapAppToModel(&data, app, false)
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
@@ -476,7 +491,8 @@ func (r *AppResource) Update(ctx context.Context, req resource.UpdateRequest, re
 		return
 	}
 
-	r.mapAppToModel(&data, app)
+	// Map response to model, preserving user's spicepod to avoid inconsistent result errors
+	r.mapAppToModel(&data, app, true)
 
 	tflog.Trace(ctx, "updated app", map[string]interface{}{
 		"id":   app.ID,
@@ -613,7 +629,11 @@ func (r *AppResource) buildUpdateRequest(data *AppResourceModel) *client.UpdateA
 }
 
 // mapAppToModel maps an API App response to the Terraform model.
-func (r *AppResource) mapAppToModel(data *AppResourceModel, app *client.App) {
+// mapAppToModel maps the API response to the Terraform model.
+// If preserveUserSpicepod is true, the user's original spicepod value is preserved
+// (used during Create/Update to avoid "inconsistent result after apply" errors).
+// If false, the API response is used (for Read operations).
+func (r *AppResource) mapAppToModel(data *AppResourceModel, app *client.App, preserveUserSpicepod bool) {
 	data.ID = types.StringValue(strconv.FormatInt(app.ID, 10))
 	data.Name = types.StringValue(app.Name)
 
@@ -650,10 +670,13 @@ func (r *AppResource) mapAppToModel(data *AppResourceModel, app *client.App) {
 	}
 	// If data.Tags is null (not configured), leave it as null
 
-	// Region can be at top level or inside config
-	if app.Region != "" {
-		data.Region = types.StringValue(app.Region)
-	} else if app.Config != nil && app.Config.Region != "" {
+	// Map cname from API response
+	if app.Cname != "" {
+		data.Cname = types.StringValue(app.Cname)
+	}
+
+	// Region is inside config
+	if app.Config != nil && app.Config.Region != "" {
 		data.Region = types.StringValue(app.Config.Region)
 	} else {
 		data.Region = types.StringNull()
@@ -724,24 +747,24 @@ func (r *AppResource) mapAppToModel(data *AppResourceModel, app *client.App) {
 		if app.Config.Spicepod != nil {
 			if spicepodBytes, err := json.Marshal(app.Config.Spicepod); err == nil {
 				apiSpicepodJSON := string(spicepodBytes)
-				// If user's value is semantically equal to API response, preserve user's format
-				if !data.Spicepod.IsNull() && !data.Spicepod.IsUnknown() {
-					userNormalized := normalizeSpicepodToJSON(data.Spicepod.ValueString())
-					apiNormalized := normalizeSpicepodToJSON(apiSpicepodJSON)
-					if userNormalized == apiNormalized {
-						// Keep the user's original value (YAML or JSON) - don't overwrite
-					} else {
-						// Values differ semantically, use API response
-						data.Spicepod = SpicepodStringValue{StringValue: types.StringValue(apiSpicepodJSON)}
-					}
+				// During Create/Update, preserve the user's original spicepod value
+				// to avoid "inconsistent result after apply" errors from Terraform.
+				// The semantic equality will handle comparison during plan/refresh.
+				if preserveUserSpicepod && !data.Spicepod.IsNull() && !data.Spicepod.IsUnknown() {
+					// Keep the user's original value (YAML or JSON) - don't overwrite
 				} else {
+					// During Read or when user didn't provide a value, use API response
 					data.Spicepod = SpicepodStringValue{StringValue: types.StringValue(apiSpicepodJSON)}
 				}
 			} else {
-				data.Spicepod = SpicepodStringValue{StringValue: types.StringNull()}
+				if !preserveUserSpicepod {
+					data.Spicepod = SpicepodStringValue{StringValue: types.StringNull()}
+				}
 			}
 		} else {
-			data.Spicepod = SpicepodStringValue{StringValue: types.StringNull()}
+			if !preserveUserSpicepod {
+				data.Spicepod = SpicepodStringValue{StringValue: types.StringNull()}
+			}
 		}
 	} else {
 		// No config returned, set all config fields to null

@@ -11,7 +11,8 @@ terraform {
 # Provider configuration
 provider "spiceai" {
   # Optional: Custom API endpoint (defaults to https://api.spice.ai)
-  api_endpoint = "http://localhost:8080"
+  api_endpoint = "https://dev-api.spice.ai"
+  # api_endpoint = "http://localhost:8080"
 
   # Optional: Custom OAuth endpoint (defaults to https://spice.ai/api/oauth/token)
   # oauth_endpoint = "https://spice.ai/api/oauth/token"
@@ -24,11 +25,15 @@ locals {
   app_name = "terraform-test-app-local-2"
 }
 
+# Get available regions
+data "spiceai_regions" "available" {}
+
 # Create a test app with full configuration
 resource "spiceai_app" "test" {
   name        = local.app_name
   description = "Test app for Terraform provider validation, updated description"
   visibility  = "private"
+  cname       = "dev-data" # Required: region identifier
 
   # Spicepod configuration from template file with app name
   spicepod = templatefile("${path.module}/spicepod.yaml.tftpl", {
@@ -36,8 +41,8 @@ resource "spiceai_app" "test" {
   })
 
   # # Runtime configuration
-  image_tag = "1.10.0-enterprise-models"
-  replicas  = 3
+  image_tag = var.image_tag
+  replicas  = 1
   # production_branch = "main"
 }
 
