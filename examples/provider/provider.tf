@@ -19,11 +19,9 @@ provider "spiceai" {
 
   # Optional: Custom API endpoint (defaults to https://api.spice.ai)
   # api_endpoint = "https://api.spice.ai"
-  api_endpoint = "https://dev-api.spice.ai"
 
   # Optional: Custom OAuth endpoint (defaults to https://spice.ai/api/oauth/token)
   # oauth_endpoint = "https://spice.ai/api/oauth/token"
-  oauth_endpoint = "https://dev.spice.ai/api/oauth/token"
 }
 
 # Variables for credentials
