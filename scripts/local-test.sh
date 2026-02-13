@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright (c) HashiCorp, Inc.
+# Copyright (c) Spice AI, Inc. 2025, 2026
 # SPDX-License-Identifier: MPL-2.0
 
 # Helper script for local testing of the Spice.ai Terraform provider

@@ -1,8 +1,9 @@
 schema_version = 1
 
 project {
-  license        = "MPL-2.0"
-  copyright_year = 2025
+  license          = "MPL-2.0"
+  copyright_year   = 2025
+  copyright_holder = "Spice AI, Inc."
 
   header_ignore = [
     # internal catalog metadata (prose)
