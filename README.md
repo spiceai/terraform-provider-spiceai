@@ -68,6 +68,7 @@ resource "spiceai_app" "example" {
   name        = "my-app"
   description = "My Spice.ai application"
   visibility  = "private"
+  cname       = "us-west-2-prod-aws-data"
 
   # Spicepod configuration (YAML or JSON)
   spicepod = <<-YAML
@@ -215,6 +216,7 @@ resource "spiceai_app" "example" {
   name        = "my-terraform-app"
   description = "Managed by Terraform"
   visibility  = "private"
+  cname       = "us-west-2-prod-aws-data"
 
   spicepod = <<-YAML
     version: v1beta1

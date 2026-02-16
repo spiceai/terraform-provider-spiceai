@@ -1129,7 +1129,7 @@ Regions define where apps can be deployed.
   "providerName": "AWS",
   "isDefault": true,
   "disabled": false,
-  "cname": "us-east-2.spice.cloud"
+  "cname": "us-west-2-prod-aws-data"
 }
 ```
 
@@ -1163,7 +1163,7 @@ Returns available deployment regions.
       "providerName": "AWS",
       "isDefault": true,
       "disabled": false,
-      "cname": "us-east-2.spice.cloud"
+      "cname": "us-west-2-prod-aws-data"
     },
     {
       "name": "US West (Oregon)",

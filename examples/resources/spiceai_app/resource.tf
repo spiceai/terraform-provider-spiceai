@@ -3,7 +3,7 @@ resource "spiceai_app" "basic" {
   name        = "my-basic-app"
   description = "A basic Spice.ai app"
   visibility  = "private"
-  cname       = "us-east-2.spice.cloud" # Required: region identifier from spiceai_regions data source
+  cname       = "us-west-2-prod-aws-data" # Required: region identifier from spiceai_regions data source
 }
 
 # Full app with spicepod and runtime configuration
@@ -11,7 +11,7 @@ resource "spiceai_app" "full" {
   name        = "my-full-app"
   description = "A fully configured Spice.ai app"
   visibility  = "private"
-  cname       = "us-east-2.spice.cloud"
+  cname       = "us-west-2-prod-aws-data"
 
   # Spicepod configuration (YAML or JSON)
   spicepod = <<-YAML

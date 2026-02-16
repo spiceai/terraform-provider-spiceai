@@ -29,7 +29,7 @@ Retrieves a list of available deployment regions for Spice.ai apps.
 
 Read-Only:
 
-- `cname` (String) The CNAME for the region (e.g., `us-east-2.spice.cloud`).
+- `cname` (String) The CNAME for the region (e.g., `us-west-2-prod-aws-data`).
 - `disabled` (Boolean) Whether this region is disabled.
 - `is_default` (Boolean) Whether this is the default region.
 - `name` (String) The display name of the region (e.g., `US East (Ohio)`).
