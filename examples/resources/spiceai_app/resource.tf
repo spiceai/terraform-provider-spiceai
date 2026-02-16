@@ -15,7 +15,7 @@ resource "spiceai_app" "full" {
 
   # Spicepod configuration (YAML or JSON)
   spicepod = <<-YAML
-    version: v1beta1
+    version: v1
     kind: Spicepod
     name: my-full-app
     datasets:
@@ -45,7 +45,7 @@ resource "spiceai_app" "json_config" {
   cname       = "us-west-2-prod-aws-data"
 
   spicepod = jsonencode({
-    version = "v1beta1"
+    version = "v1"
     kind    = "Spicepod"
     name    = "my-json-app"
     datasets = [

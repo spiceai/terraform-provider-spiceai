@@ -209,7 +209,7 @@ resource "spiceai_app" "example" {
 
   # Spicepod configuration (YAML or JSON)
   spicepod = <<-YAML
-    version: v1beta1
+    version: v1
     kind: Spicepod
     name: my-app
     datasets:

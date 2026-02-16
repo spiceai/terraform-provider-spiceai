@@ -1435,7 +1435,7 @@ The spicepod is the core configuration for a Spice AI app.
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `version` | string | Yes | Schema version (`v1` or `v1beta1`) |
+| `version` | string | Yes | Schema version (`v1` or `v1`) |
 | `kind` | string | Yes | Must be `Spicepod` |
 | `name` | string | Yes | App name |
 | `datasets` | array | No | Data source configurations |
