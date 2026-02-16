@@ -142,7 +142,7 @@ resource "spiceai_deployment" "production" {
 - `commit_sha` (String) Git commit SHA associated with this deployment. Changing this forces a new deployment to be created.
 - `debug` (Boolean) Enable debug mode for this deployment. Changing this forces a new deployment to be created.
 - `image_tag` (String) Override the Spice.ai runtime image tag for this deployment. If not specified, uses the app's configured image tag. Changing this forces a new deployment to be created.
-- `replicas` (Number) Override the number of replicas for this deployment. Must be between 1 and 10. If not specified, uses the app's configured replicas. Changing this forces a new deployment to be created.
+- `replicas` (Number) Override the number of replicas for this deployment. Must be between 0 and 10. If not specified, uses the app's configured replicas. Changing this forces a new deployment to be created.
 - `triggers` (Map of String) A map of arbitrary strings that, when changed, will force a new deployment to be created. Use this to trigger deployments based on external changes, such as spicepod configuration updates. Similar to `triggers` in `null_resource`.
 
 ### Read-Only

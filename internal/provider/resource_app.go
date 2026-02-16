@@ -205,7 +205,7 @@ resource "spiceai_app" "example" {
   name        = "my-terraform-app"
   description = "An app created and managed by Terraform"
   visibility  = "private"
-  cname       = "us-east-2.spice.cloud"  # Required: region identifier from spiceai_regions data source
+  cname       = "us-west-2-prod-aws-data"  # Required: region identifier from spiceai_regions data source
 
   # Spicepod configuration (YAML or JSON)
   spicepod = <<-YAML
@@ -313,11 +313,11 @@ resource "spiceai_app" "example" {
 				},
 			},
 			"replicas": schema.Int64Attribute{
-				MarkdownDescription: "The number of replicas for the app. Must be between 1 and 10.",
+				MarkdownDescription: "The number of replicas for the app. Must be between 0 and 10.",
 				Optional:            true,
 				Computed:            true,
 				Validators: []validator.Int64{
-					int64validator.Between(1, 10),
+					int64validator.Between(0, 10),
 				},
 			},
 			"node_group": schema.StringAttribute{
@@ -726,11 +726,7 @@ func (r *AppResource) mapAppToModel(data *AppResourceModel, app *client.App, pre
 			data.UpdateChannel = types.StringNull()
 		}
 
-		if app.Config.Replicas > 0 {
-			data.Replicas = types.Int64Value(int64(app.Config.Replicas))
-		} else {
-			data.Replicas = types.Int64Null()
-		}
+		data.Replicas = types.Int64Value(int64(app.Config.Replicas))
 
 		if app.Config.NodeGroup != "" {
 			data.NodeGroup = types.StringValue(app.Config.NodeGroup)
