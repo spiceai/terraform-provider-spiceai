@@ -1172,7 +1172,7 @@ Returns available deployment regions.
       "providerName": "AWS",
       "isDefault": false,
       "disabled": false,
-      "cname": "us-west-2.spice.cloud"
+      "cname": "us-west-2-prod-aws-data"
     }
   ],
   "default": "us-east-2"
@@ -1313,6 +1313,7 @@ resource "spiceai_app" "example" {
   description = "Managed by Terraform"
   visibility  = "private"
   region      = "us-east-2"
+  cname       = "us-west-2-prod-aws-data"
 
   config {
     replicas  = 2

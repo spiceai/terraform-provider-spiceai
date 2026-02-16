@@ -119,7 +119,7 @@ resource "spiceai_app" "json_config" {
   name        = "my-json-app"
   description = "An app with JSON spicepod configuration"
   visibility  = "public"
-  cname       = "us-west-2.spice.cloud"
+  cname       = "us-west-2-prod-aws-data"
 
   spicepod = jsonencode({
     version = "v1beta1"

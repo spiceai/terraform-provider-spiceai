@@ -33,7 +33,7 @@ resource "spiceai_app" "test" {
   name        = local.app_name
   description = "Test app for Terraform provider validation, updated description"
   visibility  = "private"
-  cname       = "dev-data" # Required: region identifier
+  cname       = "us-west-2-prod-aws-data"
 
   # Spicepod configuration from template file with app name
   spicepod = templatefile("${path.module}/spicepod.yaml.tftpl", {
