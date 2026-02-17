@@ -1,5 +1,9 @@
 # Terraform Provider for Spice.ai
 
+[![Terraform Registry](https://img.shields.io/badge/terraform-registry-blueviolet?logo=terraform)](https://registry.terraform.io/providers/spiceai/spiceai/latest)
+[![CI](https://github.com/spiceai/terraform-provider-spiceai/actions/workflows/test.yml/badge.svg)](https://github.com/spiceai/terraform-provider-spiceai/actions/workflows/test.yml)
+[![License: MPL-2.0](https://img.shields.io/badge/License-MPL--2.0-brightgreen.svg)](LICENSE)
+
 Terraform provider for managing [Spice.ai Cloud](https://spice.ai) resources.
 
 ## Requirements
