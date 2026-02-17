@@ -11,7 +11,7 @@
 provider_installation {
   dev_overrides {
     # Update this path to where your terraform-provider-spiceai binary is located
-    "spiceai/spiceai" = "/Users/evgenii/Developer/Spice/terraform-provider-spiceai"
+    "spiceai/spiceai" = "/path/to/terraform-provider-spiceai"
   }
 
   # Fall back to the default installation behavior for all other providers
