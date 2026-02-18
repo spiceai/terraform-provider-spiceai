@@ -139,11 +139,11 @@ resource "spiceai_deployment" "example" {
 				},
 			},
 			"replicas": schema.Int64Attribute{
-				MarkdownDescription: "Override the number of replicas for this deployment. Must be between 1 and 10. If not specified, uses the app's configured replicas. Changing this forces a new deployment to be created.",
+				MarkdownDescription: "Override the number of replicas for this deployment. Must be between 0 and 10. If not specified, uses the app's configured replicas. Changing this forces a new deployment to be created.",
 				Optional:            true,
 				Computed:            true,
 				Validators: []validator.Int64{
-					int64validator.Between(1, 10),
+					int64validator.Between(0, 10),
 				},
 				PlanModifiers: []planmodifier.Int64{
 					int64PlanModifierRequiresReplace{},
@@ -395,11 +395,7 @@ func (r *DeploymentResource) mapDeploymentToModel(data *DeploymentResourceModel,
 		data.ImageTag = types.StringNull()
 	}
 
-	if deployment.Replicas > 0 {
-		data.Replicas = types.Int64Value(int64(deployment.Replicas))
-	} else {
-		data.Replicas = types.Int64Null()
-	}
+	data.Replicas = types.Int64Value(int64(deployment.Replicas))
 
 	if deployment.Branch != "" {
 		data.Branch = types.StringValue(deployment.Branch)

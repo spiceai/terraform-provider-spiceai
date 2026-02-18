@@ -11,11 +11,11 @@ description: |-
     name        = "my-terraform-app"
     description = "An app created and managed by Terraform"
     visibility  = "private"
-    cname       = "us-east-2.spice.cloud"  # Required: region identifier from spiceai_regions data source
+    cname       = "us-west-2-prod-aws-data"  # Required: region identifier from spiceai_regions data source
   
     # Spicepod configuration (YAML or JSON)
     spicepod = <<-YAML
-      version: v1beta1
+      version: v1
       kind: Spicepod
       name: my-app
       datasets:
@@ -48,11 +48,11 @@ resource "spiceai_app" "example" {
   name        = "my-terraform-app"
   description = "An app created and managed by Terraform"
   visibility  = "private"
-  cname       = "us-east-2.spice.cloud"  # Required: region identifier from spiceai_regions data source
+  cname       = "us-west-2-prod-aws-data"  # Required: region identifier from spiceai_regions data source
 
   # Spicepod configuration (YAML or JSON)
   spicepod = <<-YAML
-    version: v1beta1
+    version: v1
     kind: Spicepod
     name: my-app
     datasets:
@@ -80,7 +80,7 @@ resource "spiceai_app" "basic" {
   name        = "my-basic-app"
   description = "A basic Spice.ai app"
   visibility  = "private"
-  cname       = "us-east-2.spice.cloud" # Required: region identifier from spiceai_regions data source
+  cname       = "us-west-2-prod-aws-data" # Required: region identifier from spiceai_regions data source
 }
 
 # Full app with spicepod and runtime configuration
@@ -88,11 +88,11 @@ resource "spiceai_app" "full" {
   name        = "my-full-app"
   description = "A fully configured Spice.ai app"
   visibility  = "private"
-  cname       = "us-east-2.spice.cloud"
+  cname       = "us-west-2-prod-aws-data"
 
   # Spicepod configuration (YAML or JSON)
   spicepod = <<-YAML
-    version: v1beta1
+    version: v1
     kind: Spicepod
     name: my-full-app
     datasets:
@@ -119,10 +119,10 @@ resource "spiceai_app" "json_config" {
   name        = "my-json-app"
   description = "An app with JSON spicepod configuration"
   visibility  = "public"
-  cname       = "us-west-2.spice.cloud"
+  cname       = "us-west-2-prod-aws-data"
 
   spicepod = jsonencode({
-    version = "v1beta1"
+    version = "v1"
     kind    = "Spicepod"
     name    = "my-json-app"
     datasets = [
@@ -164,7 +164,7 @@ resource "spiceai_app" "with_region_lookup" {
 - `production_branch` (String) The production branch for the app. Used for git-based deployments.
 - `region` (String) The region for the app deployment.
 - `registry` (String) Registry for the spiced image.
-- `replicas` (Number) The number of replicas for the app. Must be between 1 and 10.
+- `replicas` (Number) The number of replicas for the app. Must be between 0 and 10.
 - `spicepod` (String) The spicepod configuration as a YAML or JSON string. This defines the datasets, models, and other spicepod settings for the app.
 - `storage_claim_size_gb` (Number) The storage claim size in GB for the app.
 - `tags` (Map of String) Key-value tags for the app.

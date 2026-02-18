@@ -18,14 +18,14 @@ func TestNormalizeSpicepodToJSON(t *testing.T) {
 	}{
 		{
 			name: "yaml simple",
-			input: `version: v1beta1
+			input: `version: v1
 kind: Spicepod
 name: test-app`,
-			expected: `{"kind":"Spicepod","name":"test-app","version":"v1beta1"}`,
+			expected: `{"kind":"Spicepod","name":"test-app","version":"v1"}`,
 		},
 		{
 			name: "yaml with datasets",
-			input: `version: v1beta1
+			input: `version: v1
 kind: Spicepod
 name: test-app
 datasets:
@@ -33,35 +33,35 @@ datasets:
     from: s3://bucket/path/
     params:
       file_format: parquet`,
-			expected: `{"datasets":[{"from":"s3://bucket/path/","name":"test_dataset","params":{"file_format":"parquet"}}],"kind":"Spicepod","name":"test-app","version":"v1beta1"}`,
+			expected: `{"datasets":[{"from":"s3://bucket/path/","name":"test_dataset","params":{"file_format":"parquet"}}],"kind":"Spicepod","name":"test-app","version":"v1"}`,
 		},
 		{
 			name:     "json already normalized",
-			input:    `{"kind":"Spicepod","name":"test-app","version":"v1beta1"}`,
-			expected: `{"kind":"Spicepod","name":"test-app","version":"v1beta1"}`,
+			input:    `{"kind":"Spicepod","name":"test-app","version":"v1"}`,
+			expected: `{"kind":"Spicepod","name":"test-app","version":"v1"}`,
 		},
 		{
 			name:     "json with different key order",
-			input:    `{"version":"v1beta1","name":"test-app","kind":"Spicepod"}`,
-			expected: `{"kind":"Spicepod","name":"test-app","version":"v1beta1"}`,
+			input:    `{"version":"v1","name":"test-app","kind":"Spicepod"}`,
+			expected: `{"kind":"Spicepod","name":"test-app","version":"v1"}`,
 		},
 		{
 			name:     "json with whitespace",
-			input:    `{  "version": "v1beta1",  "name": "test-app",  "kind": "Spicepod"  }`,
-			expected: `{"kind":"Spicepod","name":"test-app","version":"v1beta1"}`,
+			input:    `{  "version": "v1",  "name": "test-app",  "kind": "Spicepod"  }`,
+			expected: `{"kind":"Spicepod","name":"test-app","version":"v1"}`,
 		},
 		{
 			name: "json pretty printed",
 			input: `{
-  "version": "v1beta1",
+  "version": "v1",
   "kind": "Spicepod",
   "name": "test-app"
 }`,
-			expected: `{"kind":"Spicepod","name":"test-app","version":"v1beta1"}`,
+			expected: `{"kind":"Spicepod","name":"test-app","version":"v1"}`,
 		},
 		{
 			name: "yaml with multiple datasets",
-			input: `version: v1beta1
+			input: `version: v1
 kind: Spicepod
 name: multi-dataset-app
 datasets:
@@ -69,7 +69,7 @@ datasets:
     from: s3://bucket1/
   - name: dataset2
     from: s3://bucket2/`,
-			expected: `{"datasets":[{"from":"s3://bucket1/","name":"dataset1"},{"from":"s3://bucket2/","name":"dataset2"}],"kind":"Spicepod","name":"multi-dataset-app","version":"v1beta1"}`,
+			expected: `{"datasets":[{"from":"s3://bucket1/","name":"dataset1"},{"from":"s3://bucket2/","name":"dataset2"}],"kind":"Spicepod","name":"multi-dataset-app","version":"v1"}`,
 		},
 		{
 			name:     "empty string returns null",
@@ -83,7 +83,7 @@ datasets:
 		},
 		{
 			name: "yaml with nested params",
-			input: `version: v1beta1
+			input: `version: v1
 kind: Spicepod
 name: nested-app
 datasets:
@@ -93,18 +93,18 @@ datasets:
       nested:
         key1: value1
         key2: value2`,
-			expected: `{"datasets":[{"from":"source","name":"test","params":{"nested":{"key1":"value1","key2":"value2"}}}],"kind":"Spicepod","name":"nested-app","version":"v1beta1"}`,
+			expected: `{"datasets":[{"from":"source","name":"test","params":{"nested":{"key1":"value1","key2":"value2"}}}],"kind":"Spicepod","name":"nested-app","version":"v1"}`,
 		},
 		{
 			name: "yaml with boolean and numeric values",
-			input: `version: v1beta1
+			input: `version: v1
 kind: Spicepod
 name: typed-app
 settings:
   enabled: true
   count: 42
   ratio: 3.14`,
-			expected: `{"kind":"Spicepod","name":"typed-app","settings":{"count":42,"enabled":true,"ratio":3.14},"version":"v1beta1"}`,
+			expected: `{"kind":"Spicepod","name":"typed-app","settings":{"count":42,"enabled":true,"ratio":3.14},"version":"v1"}`,
 		},
 	}
 
@@ -120,7 +120,7 @@ settings:
 
 func TestNormalizeSpicepodToJSON_YAMLAndJSONEquivalence(t *testing.T) {
 	// Test that equivalent YAML and JSON produce the same normalized output
-	yamlInput := `version: v1beta1
+	yamlInput := `version: v1
 kind: Spicepod
 name: terraform-test-app
 datasets:
@@ -129,7 +129,7 @@ datasets:
     params:
       file_format: parquet`
 
-	jsonInput := `{"datasets":[{"from":"s3://spiceai-demo-datasets/taxi_trips/2024/","name":"test_dataset","params":{"file_format":"parquet"}}],"kind":"Spicepod","name":"terraform-test-app","version":"v1beta1"}`
+	jsonInput := `{"datasets":[{"from":"s3://spiceai-demo-datasets/taxi_trips/2024/","name":"test_dataset","params":{"file_format":"parquet"}}],"kind":"Spicepod","name":"terraform-test-app","version":"v1"}`
 
 	yamlNormalized := normalizeSpicepodToJSON(yamlInput)
 	jsonNormalized := normalizeSpicepodToJSON(jsonInput)
@@ -142,8 +142,8 @@ datasets:
 func TestNormalizeSpicepodToJSON_Idempotent(t *testing.T) {
 	// Test that normalizing an already normalized value produces the same result
 	inputs := []string{
-		`{"kind":"Spicepod","name":"test","version":"v1beta1"}`,
-		`version: v1beta1
+		`{"kind":"Spicepod","name":"test","version":"v1"}`,
+		`version: v1
 kind: Spicepod
 name: test`,
 	}
@@ -169,7 +169,7 @@ func TestSpicepodStringType_ValueFromString(t *testing.T) {
 	}{
 		{
 			name:  "normal string",
-			input: types.StringValue("version: v1beta1"),
+			input: types.StringValue("version: v1"),
 		},
 		{
 			name:  "null string",
@@ -211,20 +211,20 @@ func TestSpicepodStringValue_StringSemanticEquals(t *testing.T) {
 	}{
 		{
 			name:     "yaml equals equivalent json",
-			value1:   SpicepodStringValue{StringValue: types.StringValue("version: v1beta1\nkind: Spicepod\nname: test")},
-			value2:   SpicepodStringValue{StringValue: types.StringValue(`{"kind":"Spicepod","name":"test","version":"v1beta1"}`)},
+			value1:   SpicepodStringValue{StringValue: types.StringValue("version: v1\nkind: Spicepod\nname: test")},
+			value2:   SpicepodStringValue{StringValue: types.StringValue(`{"kind":"Spicepod","name":"test","version":"v1"}`)},
 			expected: true,
 		},
 		{
 			name:     "json equals json with different key order",
-			value1:   SpicepodStringValue{StringValue: types.StringValue(`{"version":"v1beta1","name":"test","kind":"Spicepod"}`)},
-			value2:   SpicepodStringValue{StringValue: types.StringValue(`{"kind":"Spicepod","name":"test","version":"v1beta1"}`)},
+			value1:   SpicepodStringValue{StringValue: types.StringValue(`{"version":"v1","name":"test","kind":"Spicepod"}`)},
+			value2:   SpicepodStringValue{StringValue: types.StringValue(`{"kind":"Spicepod","name":"test","version":"v1"}`)},
 			expected: true,
 		},
 		{
 			name:     "different values are not equal",
-			value1:   SpicepodStringValue{StringValue: types.StringValue("version: v1beta1\nkind: Spicepod\nname: test1")},
-			value2:   SpicepodStringValue{StringValue: types.StringValue("version: v1beta1\nkind: Spicepod\nname: test2")},
+			value1:   SpicepodStringValue{StringValue: types.StringValue("version: v1\nkind: Spicepod\nname: test1")},
+			value2:   SpicepodStringValue{StringValue: types.StringValue("version: v1\nkind: Spicepod\nname: test2")},
 			expected: false,
 		},
 		{
@@ -236,13 +236,13 @@ func TestSpicepodStringValue_StringSemanticEquals(t *testing.T) {
 		{
 			name:     "null and non-null are not equal",
 			value1:   SpicepodStringValue{StringValue: types.StringNull()},
-			value2:   SpicepodStringValue{StringValue: types.StringValue("version: v1beta1")},
+			value2:   SpicepodStringValue{StringValue: types.StringValue("version: v1")},
 			expected: false,
 		},
 		{
 			name:     "complex yaml equals complex json",
-			value1:   SpicepodStringValue{StringValue: types.StringValue("version: v1beta1\nkind: Spicepod\nname: test\ndatasets:\n  - name: ds1\n    from: s3://bucket/")},
-			value2:   SpicepodStringValue{StringValue: types.StringValue(`{"datasets":[{"from":"s3://bucket/","name":"ds1"}],"kind":"Spicepod","name":"test","version":"v1beta1"}`)},
+			value1:   SpicepodStringValue{StringValue: types.StringValue("version: v1\nkind: Spicepod\nname: test\ndatasets:\n  - name: ds1\n    from: s3://bucket/")},
+			value2:   SpicepodStringValue{StringValue: types.StringValue(`{"datasets":[{"from":"s3://bucket/","name":"ds1"}],"kind":"Spicepod","name":"test","version":"v1"}`)},
 			expected: true,
 		},
 	}
@@ -265,7 +265,7 @@ func TestSpicepodStringValue_SemanticEquals_RealWorldExample(t *testing.T) {
 	ctx := context.Background()
 
 	// User provides YAML (like from file("spicepod.yaml"))
-	userYAML := SpicepodStringValue{StringValue: types.StringValue(`version: v1beta1
+	userYAML := SpicepodStringValue{StringValue: types.StringValue(`version: v1
 kind: Spicepod
 name: terraform-test-app
 
@@ -277,7 +277,7 @@ datasets:
 `)}
 
 	// API returns JSON
-	apiJSON := SpicepodStringValue{StringValue: types.StringValue(`{"datasets":[{"from":"s3://spiceai-demo-datasets/taxi_trips/2024/","name":"test_dataset","params":{"file_format":"parquet"}}],"kind":"Spicepod","name":"terraform-test-app","version":"v1beta1"}`)}
+	apiJSON := SpicepodStringValue{StringValue: types.StringValue(`{"datasets":[{"from":"s3://spiceai-demo-datasets/taxi_trips/2024/","name":"test_dataset","params":{"file_format":"parquet"}}],"kind":"Spicepod","name":"terraform-test-app","version":"v1"}`)}
 
 	// They should be semantically equal
 	equal, diags := userYAML.StringSemanticEquals(ctx, apiJSON)
@@ -304,13 +304,13 @@ func TestSpicepodStringValue_SemanticEquals_DetectsRealChanges(t *testing.T) {
 	ctx := context.Background()
 
 	// Old config
-	oldYAML := SpicepodStringValue{StringValue: types.StringValue(`version: v1beta1
+	oldYAML := SpicepodStringValue{StringValue: types.StringValue(`version: v1
 kind: Spicepod
 name: terraform-test-app-old
 `)}
 
 	// New config with different name
-	newYAML := SpicepodStringValue{StringValue: types.StringValue(`version: v1beta1
+	newYAML := SpicepodStringValue{StringValue: types.StringValue(`version: v1
 kind: Spicepod
 name: terraform-test-app-new
 `)}

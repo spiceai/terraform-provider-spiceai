@@ -92,7 +92,7 @@ func (d *RegionsDataSource) Schema(ctx context.Context, req datasource.SchemaReq
 							Computed:            true,
 						},
 						"cname": schema.StringAttribute{
-							MarkdownDescription: "The CNAME for the region (e.g., `us-east-2.spice.cloud`).",
+							MarkdownDescription: "The CNAME for the region (e.g., `us-west-2-prod-aws-data`).",
 							Computed:            true,
 						},
 					},

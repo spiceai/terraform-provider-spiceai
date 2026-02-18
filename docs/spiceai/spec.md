@@ -1129,7 +1129,7 @@ Regions define where apps can be deployed.
   "providerName": "AWS",
   "isDefault": true,
   "disabled": false,
-  "cname": "us-east-2.spice.cloud"
+  "cname": "us-west-2-prod-aws-data"
 }
 ```
 
@@ -1163,7 +1163,7 @@ Returns available deployment regions.
       "providerName": "AWS",
       "isDefault": true,
       "disabled": false,
-      "cname": "us-east-2.spice.cloud"
+      "cname": "us-west-2-prod-aws-data"
     },
     {
       "name": "US West (Oregon)",
@@ -1172,7 +1172,7 @@ Returns available deployment regions.
       "providerName": "AWS",
       "isDefault": false,
       "disabled": false,
-      "cname": "us-west-2.spice.cloud"
+      "cname": "us-west-2-prod-aws-data"
     }
   ],
   "default": "us-east-2"
@@ -1313,6 +1313,7 @@ resource "spiceai_app" "example" {
   description = "Managed by Terraform"
   visibility  = "private"
   region      = "us-east-2"
+  cname       = "us-west-2-prod-aws-data"
 
   config {
     replicas  = 2
@@ -1434,7 +1435,7 @@ The spicepod is the core configuration for a Spice AI app.
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `version` | string | Yes | Schema version (`v1` or `v1beta1`) |
+| `version` | string | Yes | Schema version (`v1` or `v1`) |
 | `kind` | string | Yes | Must be `Spicepod` |
 | `name` | string | Yes | App name |
 | `datasets` | array | No | Data source configurations |

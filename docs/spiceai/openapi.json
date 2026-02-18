@@ -1371,7 +1371,7 @@
                           },
                           "cname": {
                             "type": "string",
-                            "description": "CNAME for the region (e.g., us-east-2.spice.cloud)"
+                            "description": "CNAME for the region (e.g., us-west-2-prod-aws-data)"
                           }
                         }
                       }

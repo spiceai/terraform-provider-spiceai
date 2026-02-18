@@ -28,7 +28,7 @@ provider "spiceai" {
 
 #   # # Spicepod configuration
 #   # spicepod = <<-YAML
-#   #   version: v1beta1
+#   #   version: v1
 #   #   kind: Spicepod
 #   #   name: terraform-test-app
 #   #   datasets:
