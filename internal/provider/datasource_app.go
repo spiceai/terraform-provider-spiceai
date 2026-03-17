@@ -59,7 +59,6 @@ type AppDataSourceModel struct {
 	// Read-only attributes
 	CreatedAt types.String `tfsdk:"created_at"`
 	ClusterID types.String `tfsdk:"cluster_id"`
-	APIKey    types.String `tfsdk:"api_key"`
 }
 
 func (d *AppDataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -153,11 +152,6 @@ func (d *AppDataSource) Schema(ctx context.Context, req datasource.SchemaRequest
 				MarkdownDescription: "The Kubernetes cluster identifier where the app is deployed.",
 				Computed:            true,
 			},
-			"api_key": schema.StringAttribute{
-				MarkdownDescription: "The API key for the app.",
-				Computed:            true,
-				Sensitive:           true,
-			},
 		},
 	}
 }
@@ -236,7 +230,6 @@ func (d *AppDataSource) mapAppToModel(data *AppDataSourceModel, app *client.App)
 
 	data.CreatedAt = types.StringValue(app.CreatedAt)
 	data.ClusterID = types.StringValue(app.ClusterID)
-	data.APIKey = types.StringValue(app.APIKey)
 
 	// Map cname
 	if app.Cname != "" {

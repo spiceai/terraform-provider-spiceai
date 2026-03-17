@@ -178,6 +178,8 @@ type AppResourceModel struct {
 	ImageTag           types.String  `tfsdk:"image_tag"`
 	UpdateChannel      types.String  `tfsdk:"update_channel"`
 	Replicas           types.Int64   `tfsdk:"replicas"`
+	Resources          types.Object  `tfsdk:"resources"`
+	Executor           types.Object  `tfsdk:"executor"`
 	NodeGroup          types.String  `tfsdk:"node_group"`
 	Region             types.String  `tfsdk:"region"`
 	StorageClaimSizeGB types.Float64 `tfsdk:"storage_claim_size_gb"`
@@ -185,7 +187,6 @@ type AppResourceModel struct {
 	// Read-only attributes
 	CreatedAt types.String `tfsdk:"created_at"`
 	ClusterID types.String `tfsdk:"cluster_id"`
-	APIKey    types.String `tfsdk:"api_key"`
 }
 
 func (r *AppResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -305,11 +306,11 @@ resource "spiceai_app" "example" {
 				Computed:            true,
 			},
 			"update_channel": schema.StringAttribute{
-				MarkdownDescription: "Update channel for the spicepod. Valid values are `stable`, `nightly`, `internal`, `internal-sandbox`.",
+				MarkdownDescription: "Update channel for the spicepod. Valid values are `stable`, `preview`, `nightly`, and `internal`.",
 				Optional:            true,
 				Computed:            true,
 				Validators: []validator.String{
-					stringvalidator.OneOf("stable", "nightly", "internal", "internal-sandbox"),
+					stringvalidator.OneOf("stable", "preview", "nightly", "internal"),
 				},
 			},
 			"replicas": schema.Int64Attribute{
@@ -318,6 +319,104 @@ resource "spiceai_app" "example" {
 				Computed:            true,
 				Validators: []validator.Int64{
 					int64validator.Between(0, 10),
+				},
+			},
+			"resources": schema.SingleNestedAttribute{
+				MarkdownDescription: "Resource requests and limits for the app container.",
+				Optional:            true,
+				Computed:            true,
+				Attributes: map[string]schema.Attribute{
+					"limits": schema.SingleNestedAttribute{
+						Optional: true,
+						Computed: true,
+						Attributes: map[string]schema.Attribute{
+							"cpu": schema.StringAttribute{
+								Optional:            true,
+								Computed:            true,
+								MarkdownDescription: "Whole-number vCPU limit, or `-` for no CPU limit.",
+							},
+							"memory": schema.StringAttribute{
+								Optional:            true,
+								Computed:            true,
+								MarkdownDescription: "Memory limit in Gi (for example, `16Gi`).",
+							},
+							"ephemeral_storage": schema.StringAttribute{
+								Optional:            true,
+								Computed:            true,
+								MarkdownDescription: "Ephemeral storage limit in Gi (for example, `8Gi`).",
+							},
+						},
+					},
+					"requests": schema.SingleNestedAttribute{
+						Optional: true,
+						Computed: true,
+						Attributes: map[string]schema.Attribute{
+							"cpu": schema.StringAttribute{
+								Optional: true,
+								Computed: true,
+							},
+							"memory": schema.StringAttribute{
+								Optional: true,
+								Computed: true,
+							},
+						},
+					},
+				},
+			},
+			"executor": schema.SingleNestedAttribute{
+				MarkdownDescription: "Executor container configuration.",
+				Optional:            true,
+				Computed:            true,
+				Attributes: map[string]schema.Attribute{
+					"replicas": schema.Int64Attribute{
+						Optional:            true,
+						Computed:            true,
+						MarkdownDescription: "Number of executor replicas.",
+						Validators: []validator.Int64{
+							int64validator.Between(0, 10),
+						},
+					},
+					"resources": schema.SingleNestedAttribute{
+						Optional: true,
+						Computed: true,
+						Attributes: map[string]schema.Attribute{
+							"limits": schema.SingleNestedAttribute{
+								Optional: true,
+								Computed: true,
+								Attributes: map[string]schema.Attribute{
+									"cpu": schema.StringAttribute{
+										Optional:            true,
+										Computed:            true,
+										MarkdownDescription: "Whole-number vCPU limit, or `-` for no CPU limit.",
+									},
+									"memory": schema.StringAttribute{
+										Optional:            true,
+										Computed:            true,
+										MarkdownDescription: "Memory limit in Gi (for example, `16Gi`).",
+									},
+									"ephemeral_storage": schema.StringAttribute{
+										Optional:            true,
+										Computed:            true,
+										MarkdownDescription: "Ephemeral storage limit in Gi (for example, `8Gi`).",
+									},
+								},
+							},
+							"requests": schema.SingleNestedAttribute{
+								Optional: true,
+								Computed: true,
+								Attributes: map[string]schema.Attribute{
+									"cpu": schema.StringAttribute{
+										Optional: true,
+										Computed: true,
+									},
+									"memory": schema.StringAttribute{
+										Optional: true,
+										Computed: true,
+									},
+								},
+							},
+						},
+					},
 				},
 			},
 			"node_group": schema.StringAttribute{
@@ -347,14 +446,6 @@ resource "spiceai_app" "example" {
 			"cluster_id": schema.StringAttribute{
 				Computed:            true,
 				MarkdownDescription: "The Kubernetes cluster identifier where the app is deployed.",
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
-			},
-			"api_key": schema.StringAttribute{
-				Computed:            true,
-				Sensitive:           true,
-				MarkdownDescription: "The API key for the app. This is used to authenticate requests to the app's endpoints.",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
@@ -539,6 +630,8 @@ func (r *AppResource) hasConfigAttributes(data *AppResourceModel) bool {
 		!data.ImageTag.IsNull() ||
 		!data.UpdateChannel.IsNull() ||
 		!data.Replicas.IsNull() ||
+		!data.Resources.IsNull() ||
+		!data.Executor.IsNull() ||
 		!data.NodeGroup.IsNull() ||
 		!data.Region.IsNull() ||
 		!data.StorageClaimSizeGB.IsNull() ||
@@ -600,6 +693,14 @@ func (r *AppResource) buildUpdateRequest(data *AppResourceModel) *client.UpdateA
 	if !data.Replicas.IsNull() && !data.Replicas.IsUnknown() {
 		replicas := int(data.Replicas.ValueInt64())
 		updateReq.Replicas = &replicas
+	}
+
+	if !data.Resources.IsNull() && !data.Resources.IsUnknown() {
+		updateReq.Resources = expandContainerResources(data.Resources)
+	}
+
+	if !data.Executor.IsNull() && !data.Executor.IsUnknown() {
+		updateReq.Executor = expandExecutorConfig(data.Executor)
 	}
 
 	if !data.NodeGroup.IsNull() && !data.NodeGroup.IsUnknown() {
@@ -694,12 +795,6 @@ func (r *AppResource) mapAppToModel(data *AppResourceModel, app *client.App, pre
 		data.CreatedAt = types.StringNull()
 	}
 
-	if app.APIKey != "" {
-		data.APIKey = types.StringValue(app.APIKey)
-	} else {
-		data.APIKey = types.StringNull()
-	}
-
 	// Map config fields if available
 	if app.Config != nil {
 		if app.Config.Registry != "" {
@@ -727,6 +822,9 @@ func (r *AppResource) mapAppToModel(data *AppResourceModel, app *client.App, pre
 		}
 
 		data.Replicas = types.Int64Value(int64(app.Config.Replicas))
+
+		data.Resources = flattenContainerResources(app.Config.Resources)
+		data.Executor = flattenExecutorConfig(app.Config.Executor)
 
 		if app.Config.NodeGroup != "" {
 			data.NodeGroup = types.StringValue(app.Config.NodeGroup)
@@ -769,8 +867,245 @@ func (r *AppResource) mapAppToModel(data *AppResourceModel, app *client.App, pre
 		data.ImageTag = types.StringNull()
 		data.UpdateChannel = types.StringNull()
 		data.Replicas = types.Int64Null()
+		data.Resources = types.ObjectNull(map[string]attr.Type{
+			"limits": types.ObjectType{AttrTypes: map[string]attr.Type{
+				"cpu":               types.StringType,
+				"memory":            types.StringType,
+				"ephemeral_storage": types.StringType,
+			}},
+			"requests": types.ObjectType{AttrTypes: map[string]attr.Type{
+				"cpu":    types.StringType,
+				"memory": types.StringType,
+			}},
+		})
+		data.Executor = types.ObjectNull(map[string]attr.Type{
+			"replicas": types.Int64Type,
+			"resources": types.ObjectType{AttrTypes: map[string]attr.Type{
+				"limits": types.ObjectType{AttrTypes: map[string]attr.Type{
+					"cpu":               types.StringType,
+					"memory":            types.StringType,
+					"ephemeral_storage": types.StringType,
+				}},
+				"requests": types.ObjectType{AttrTypes: map[string]attr.Type{
+					"cpu":    types.StringType,
+					"memory": types.StringType,
+				}},
+			}},
+		})
 		data.NodeGroup = types.StringNull()
 		data.StorageClaimSizeGB = types.Float64Null()
 		data.Spicepod = SpicepodStringValue{StringValue: types.StringNull()}
 	}
+}
+
+func expandContainerResources(value types.Object) *client.ContainerResources {
+	if value.IsNull() || value.IsUnknown() {
+		return nil
+	}
+
+	result := &client.ContainerResources{}
+	hasValues := false
+
+	attrs := value.Attributes()
+
+	if limitsAttr, ok := attrs["limits"]; ok {
+		if limitsObj, ok := limitsAttr.(types.Object); ok && !limitsObj.IsNull() && !limitsObj.IsUnknown() {
+			limits := &client.ResourceLimits{}
+			limitsHasValues := false
+
+			for name, attrValue := range limitsObj.Attributes() {
+				strValue, ok := attrValue.(types.String)
+				if !ok || strValue.IsNull() || strValue.IsUnknown() {
+					continue
+				}
+
+				switch name {
+				case "cpu":
+					limits.CPU = strValue.ValueString()
+					limitsHasValues = true
+				case "memory":
+					limits.Memory = strValue.ValueString()
+					limitsHasValues = true
+				case "ephemeral_storage":
+					limits.EphemeralStorage = strValue.ValueString()
+					limitsHasValues = true
+				}
+			}
+
+			if limitsHasValues {
+				result.Limits = limits
+				hasValues = true
+			}
+		}
+	}
+
+	if requestsAttr, ok := attrs["requests"]; ok {
+		if requestsObj, ok := requestsAttr.(types.Object); ok && !requestsObj.IsNull() && !requestsObj.IsUnknown() {
+			requests := &client.ResourceRequests{}
+			requestsHasValues := false
+
+			for name, attrValue := range requestsObj.Attributes() {
+				strValue, ok := attrValue.(types.String)
+				if !ok || strValue.IsNull() || strValue.IsUnknown() {
+					continue
+				}
+
+				switch name {
+				case "cpu":
+					requests.CPU = strValue.ValueString()
+					requestsHasValues = true
+				case "memory":
+					requests.Memory = strValue.ValueString()
+					requestsHasValues = true
+				}
+			}
+
+			if requestsHasValues {
+				result.Requests = requests
+				hasValues = true
+			}
+		}
+	}
+
+	if !hasValues {
+		return nil
+	}
+
+	return result
+}
+
+func expandExecutorConfig(value types.Object) *client.ExecutorConfig {
+	if value.IsNull() || value.IsUnknown() {
+		return nil
+	}
+
+	result := &client.ExecutorConfig{}
+	hasValues := false
+
+	attrs := value.Attributes()
+
+	if replicasAttr, ok := attrs["replicas"]; ok {
+		if replicasValue, ok := replicasAttr.(types.Int64); ok && !replicasValue.IsNull() && !replicasValue.IsUnknown() {
+			replicas := int(replicasValue.ValueInt64())
+			result.Replicas = &replicas
+			hasValues = true
+		}
+	}
+
+	if resourcesAttr, ok := attrs["resources"]; ok {
+		if resourcesObj, ok := resourcesAttr.(types.Object); ok && !resourcesObj.IsNull() && !resourcesObj.IsUnknown() {
+			result.Resources = expandContainerResources(resourcesObj)
+			if result.Resources != nil {
+				hasValues = true
+			}
+		}
+	}
+
+	if !hasValues {
+		return nil
+	}
+
+	return result
+}
+
+func flattenContainerResources(resources *client.ContainerResources) types.Object {
+	containerResourcesType := map[string]attr.Type{
+		"limits": types.ObjectType{AttrTypes: map[string]attr.Type{
+			"cpu":               types.StringType,
+			"memory":            types.StringType,
+			"ephemeral_storage": types.StringType,
+		}},
+		"requests": types.ObjectType{AttrTypes: map[string]attr.Type{
+			"cpu":    types.StringType,
+			"memory": types.StringType,
+		}},
+	}
+
+	if resources == nil {
+		return types.ObjectNull(containerResourcesType)
+	}
+
+	limitsType := map[string]attr.Type{
+		"cpu":               types.StringType,
+		"memory":            types.StringType,
+		"ephemeral_storage": types.StringType,
+	}
+
+	requestsType := map[string]attr.Type{
+		"cpu":    types.StringType,
+		"memory": types.StringType,
+	}
+
+	limitsValue := types.ObjectNull(limitsType)
+	if resources.Limits != nil {
+		limitsValue = types.ObjectValueMust(
+			limitsType,
+			map[string]attr.Value{
+				"cpu":               stringValueOrNull(resources.Limits.CPU),
+				"memory":            stringValueOrNull(resources.Limits.Memory),
+				"ephemeral_storage": stringValueOrNull(resources.Limits.EphemeralStorage),
+			},
+		)
+	}
+
+	requestsValue := types.ObjectNull(requestsType)
+	if resources.Requests != nil {
+		requestsValue = types.ObjectValueMust(
+			requestsType,
+			map[string]attr.Value{
+				"cpu":    stringValueOrNull(resources.Requests.CPU),
+				"memory": stringValueOrNull(resources.Requests.Memory),
+			},
+		)
+	}
+
+	return types.ObjectValueMust(
+		containerResourcesType,
+		map[string]attr.Value{
+			"limits":   limitsValue,
+			"requests": requestsValue,
+		},
+	)
+}
+
+func flattenExecutorConfig(executor *client.ExecutorConfig) types.Object {
+	executorType := map[string]attr.Type{
+		"replicas": types.Int64Type,
+		"resources": types.ObjectType{AttrTypes: map[string]attr.Type{
+			"limits": types.ObjectType{AttrTypes: map[string]attr.Type{
+				"cpu":               types.StringType,
+				"memory":            types.StringType,
+				"ephemeral_storage": types.StringType,
+			}},
+			"requests": types.ObjectType{AttrTypes: map[string]attr.Type{
+				"cpu":    types.StringType,
+				"memory": types.StringType,
+			}},
+		}},
+	}
+
+	if executor == nil {
+		return types.ObjectNull(executorType)
+	}
+
+	replicasValue := types.Int64Null()
+	if executor.Replicas != nil {
+		replicasValue = types.Int64Value(int64(*executor.Replicas))
+	}
+
+	return types.ObjectValueMust(
+		executorType,
+		map[string]attr.Value{
+			"replicas":  replicasValue,
+			"resources": flattenContainerResources(executor.Resources),
+		},
+	)
+}
+
+func stringValueOrNull(value string) attr.Value {
+	if value == "" {
+		return types.StringNull()
+	}
+
+	return types.StringValue(value)
 }

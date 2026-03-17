@@ -158,6 +158,7 @@ resource "spiceai_app" "with_region_lookup" {
 ### Optional
 
 - `description` (String) A description of the app.
+- `executor` (Attributes) Executor container configuration. (see [below for nested schema](#nestedatt--executor))
 - `image` (String) Image name for the spiced container.
 - `image_tag` (String) The Spice.ai runtime image tag to use for deployments (e.g., `latest`, `v0.18.0`).
 - `node_group` (String) The node group for the app deployment.
@@ -165,18 +166,81 @@ resource "spiceai_app" "with_region_lookup" {
 - `region` (String) The region for the app deployment.
 - `registry` (String) Registry for the spiced image.
 - `replicas` (Number) The number of replicas for the app. Must be between 0 and 10.
+- `resources` (Attributes) Resource requests and limits for the app container. (see [below for nested schema](#nestedatt--resources))
 - `spicepod` (String) The spicepod configuration as a YAML or JSON string. This defines the datasets, models, and other spicepod settings for the app.
 - `storage_claim_size_gb` (Number) The storage claim size in GB for the app.
 - `tags` (Map of String) Key-value tags for the app.
-- `update_channel` (String) Update channel for the spicepod. Valid values are `stable`, `nightly`, `internal`, `internal-sandbox`.
+- `update_channel` (String) Update channel for the spicepod. Valid values are `stable`, `preview`, `nightly`, and `internal`.
 - `visibility` (String) The visibility of the app. Valid values are `public` or `private`. Defaults to `private`.
 
 ### Read-Only
 
-- `api_key` (String, Sensitive) The API key for the app. This is used to authenticate requests to the app's endpoints.
 - `cluster_id` (String) The Kubernetes cluster identifier where the app is deployed.
 - `created_at` (String) The timestamp when the app was created.
 - `id` (String) The unique identifier of the app.
+
+<a id="nestedatt--executor"></a>
+### Nested Schema for `executor`
+
+Optional:
+
+- `replicas` (Number) Number of executor replicas.
+- `resources` (Attributes) (see [below for nested schema](#nestedatt--executor--resources))
+
+<a id="nestedatt--executor--resources"></a>
+### Nested Schema for `executor.resources`
+
+Optional:
+
+- `limits` (Attributes) (see [below for nested schema](#nestedatt--executor--resources--limits))
+- `requests` (Attributes) (see [below for nested schema](#nestedatt--executor--resources--requests))
+
+<a id="nestedatt--executor--resources--limits"></a>
+### Nested Schema for `executor.resources.limits`
+
+Optional:
+
+- `cpu` (String) Whole-number vCPU limit, or `-` for no CPU limit.
+- `ephemeral_storage` (String) Ephemeral storage limit in Gi (for example, `8Gi`).
+- `memory` (String) Memory limit in Gi (for example, `16Gi`).
+
+
+<a id="nestedatt--executor--resources--requests"></a>
+### Nested Schema for `executor.resources.requests`
+
+Optional:
+
+- `cpu` (String)
+- `memory` (String)
+
+
+
+
+<a id="nestedatt--resources"></a>
+### Nested Schema for `resources`
+
+Optional:
+
+- `limits` (Attributes) (see [below for nested schema](#nestedatt--resources--limits))
+- `requests` (Attributes) (see [below for nested schema](#nestedatt--resources--requests))
+
+<a id="nestedatt--resources--limits"></a>
+### Nested Schema for `resources.limits`
+
+Optional:
+
+- `cpu` (String) Whole-number vCPU limit, or `-` for no CPU limit.
+- `ephemeral_storage` (String) Ephemeral storage limit in Gi (for example, `8Gi`).
+- `memory` (String) Memory limit in Gi (for example, `16Gi`).
+
+
+<a id="nestedatt--resources--requests"></a>
+### Nested Schema for `resources.requests`
+
+Optional:
+
+- `cpu` (String)
+- `memory` (String)
 
 ## Import
 

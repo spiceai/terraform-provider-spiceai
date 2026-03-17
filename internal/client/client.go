@@ -168,41 +168,48 @@ type App struct {
 
 // AppConfig represents the configuration of an app.
 type AppConfig struct {
-	Spicepod           interface{} `json:"spicepod,omitempty"`
-	Registry           string      `json:"registry,omitempty"`
-	Image              string      `json:"image,omitempty"`
-	ImageTag           string      `json:"image_tag,omitempty"`
-	UpdateChannel      string      `json:"update_channel,omitempty"`
-	Replicas           int         `json:"replicas,omitempty"`
-	Region             string      `json:"region,omitempty"`
-	NodeGroup          string      `json:"node_group,omitempty"`
-	StorageClaimSizeGB float64     `json:"storage_claim_size_gb,omitempty"`
+	Spicepod           interface{}         `json:"spicepod,omitempty"`
+	Registry           string              `json:"registry,omitempty"`
+	Image              string              `json:"image,omitempty"`
+	ImageTag           string              `json:"image_tag,omitempty"`
+	UpdateChannel      string              `json:"update_channel,omitempty"`
+	Replicas           int                 `json:"replicas,omitempty"`
+	Resources          *ContainerResources `json:"resources,omitempty"`
+	Executor           *ExecutorConfig     `json:"executor,omitempty"`
+	Region             string              `json:"region,omitempty"`
+	NodeGroup          string              `json:"node_group,omitempty"`
+	StorageClaimSizeGB float64             `json:"storage_claim_size_gb,omitempty"`
 }
 
 // CreateAppRequest represents the request to create an app.
 type CreateAppRequest struct {
-	Name        string            `json:"name"`
-	Cname       string            `json:"cname"`
-	Description string            `json:"description,omitempty"`
-	Visibility  string            `json:"visibility,omitempty"`
-	Tags        map[string]string `json:"tags,omitempty"`
+	Name        string              `json:"name"`
+	Cname       string              `json:"cname"`
+	Description string              `json:"description,omitempty"`
+	Visibility  string              `json:"visibility,omitempty"`
+	Tags        map[string]string   `json:"tags,omitempty"`
+	Replicas    *int                `json:"replicas,omitempty"`
+	Resources   *ContainerResources `json:"resources,omitempty"`
+	Executor    *ExecutorConfig     `json:"executor,omitempty"`
 }
 
 // UpdateAppRequest represents the request to update an app.
 type UpdateAppRequest struct {
-	Description        string            `json:"description,omitempty"`
-	Visibility         string            `json:"visibility,omitempty"`
-	ProductionBranch   string            `json:"production_branch,omitempty"`
-	Tags               map[string]string `json:"tags,omitempty"`
-	Spicepod           interface{}       `json:"spicepod,omitempty"`
-	Registry           string            `json:"registry,omitempty"`
-	Image              string            `json:"image,omitempty"`
-	ImageTag           string            `json:"image_tag,omitempty"`
-	UpdateChannel      string            `json:"update_channel,omitempty"`
-	Replicas           *int              `json:"replicas,omitempty"`
-	NodeGroup          string            `json:"node_group,omitempty"`
-	Region             string            `json:"region,omitempty"`
-	StorageClaimSizeGB *float64          `json:"storage_claim_size_gb,omitempty"`
+	Description        string              `json:"description,omitempty"`
+	Visibility         string              `json:"visibility,omitempty"`
+	ProductionBranch   string              `json:"production_branch,omitempty"`
+	Tags               map[string]string   `json:"tags,omitempty"`
+	Spicepod           interface{}         `json:"spicepod,omitempty"`
+	Registry           string              `json:"registry,omitempty"`
+	Image              string              `json:"image,omitempty"`
+	ImageTag           string              `json:"image_tag,omitempty"`
+	UpdateChannel      string              `json:"update_channel,omitempty"`
+	Replicas           *int                `json:"replicas,omitempty"`
+	Resources          *ContainerResources `json:"resources,omitempty"`
+	Executor           *ExecutorConfig     `json:"executor,omitempty"`
+	NodeGroup          string              `json:"node_group,omitempty"`
+	Region             string              `json:"region,omitempty"`
+	StorageClaimSizeGB *float64            `json:"storage_claim_size_gb,omitempty"`
 }
 
 // Deployment represents a Spice.ai deployment.
@@ -223,9 +230,35 @@ type Deployment struct {
 	CreatedBy      int64  `json:"created_by,omitempty"`
 }
 
+// ResourceRequests represents requested container resources.
+type ResourceRequests struct {
+	CPU    string `json:"cpu,omitempty"`
+	Memory string `json:"memory,omitempty"`
+}
+
+// ResourceLimits represents container resource limits.
+type ResourceLimits struct {
+	CPU              string `json:"cpu,omitempty"`
+	Memory           string `json:"memory,omitempty"`
+	EphemeralStorage string `json:"ephemeral-storage,omitempty"`
+}
+
+// ContainerResources represents resource requests and limits for a container.
+type ContainerResources struct {
+	Limits   *ResourceLimits   `json:"limits,omitempty"`
+	Requests *ResourceRequests `json:"requests,omitempty"`
+}
+
+// ExecutorConfig represents executor container configuration.
+type ExecutorConfig struct {
+	Replicas  *int                `json:"replicas,omitempty"`
+	Resources *ContainerResources `json:"resources,omitempty"`
+}
+
 // CreateDeploymentRequest represents the request to create a deployment.
 type CreateDeploymentRequest struct {
 	ImageTag      string `json:"image_tag,omitempty"`
+	Channel       string `json:"channel,omitempty"`
 	Replicas      *int   `json:"replicas,omitempty"`
 	Branch        string `json:"branch,omitempty"`
 	CommitSHA     string `json:"commit_sha,omitempty"`

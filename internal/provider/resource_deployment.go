@@ -42,6 +42,7 @@ type DeploymentResourceModel struct {
 	AppID          types.String `tfsdk:"app_id"`
 	Triggers       types.Map    `tfsdk:"triggers"`
 	ImageTag       types.String `tfsdk:"image_tag"`
+	Channel        types.String `tfsdk:"channel"`
 	Replicas       types.Int64  `tfsdk:"replicas"`
 	Branch         types.String `tfsdk:"branch"`
 	CommitSHA      types.String `tfsdk:"commit_sha"`
@@ -136,6 +137,13 @@ resource "spiceai_deployment" "example" {
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 					stringplanmodifier.UseStateForUnknown(),
+				},
+			},
+			"channel": schema.StringAttribute{
+				MarkdownDescription: "Override the deployment channel for this deployment. Valid values are `stable`. Changing this forces a new deployment to be created.",
+				Optional:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
 				},
 			},
 			"replicas": schema.Int64Attribute{
@@ -260,6 +268,10 @@ func (r *DeploymentResource) Create(ctx context.Context, req resource.CreateRequ
 
 	if !data.ImageTag.IsNull() && !data.ImageTag.IsUnknown() {
 		createReq.ImageTag = data.ImageTag.ValueString()
+	}
+
+	if !data.Channel.IsNull() && !data.Channel.IsUnknown() {
+		createReq.Channel = data.Channel.ValueString()
 	}
 
 	if !data.Replicas.IsNull() && !data.Replicas.IsUnknown() {

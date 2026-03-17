@@ -138,6 +138,7 @@ resource "spiceai_deployment" "production" {
 ### Optional
 
 - `branch` (String) Git branch name associated with this deployment. Changing this forces a new deployment to be created.
+- `channel` (String) Override the deployment channel for this deployment. Valid values are `stable`. Changing this forces a new deployment to be created.
 - `commit_message` (String) Git commit message associated with this deployment. Changing this forces a new deployment to be created.
 - `commit_sha` (String) Git commit SHA associated with this deployment. Changing this forces a new deployment to be created.
 - `debug` (Boolean) Enable debug mode for this deployment. Changing this forces a new deployment to be created.
