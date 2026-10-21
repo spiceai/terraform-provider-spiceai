@@ -16,11 +16,17 @@ description: |-
     image_tag = "v0.18.0"
     replicas  = 2
     debug     = false
+  }
   
-    # Optional: Git tracking information
-    branch         = "main"
-    commit_sha     = "abc123def456"
-    commit_message = "Deploy via Terraform"
+  Deploy a Revision of the Connected Repository
+  For an app connected to a GitHub repository, branch and commit_sha choose the revision to deploy. They are not labels: an app with no connected repository refuses them.
+  
+  resource "spiceai_deployment" "release" {
+    app_id = spiceai_app.example.id
+  
+    # Deploy spicepod.yaml from this commit on the release branch
+    branch     = "release/v1.0"
+    commit_sha = var.release_commit_sha # the full 40-character commit SHA
   }
   
   Deployment with Triggers
@@ -58,11 +64,20 @@ resource "spiceai_deployment" "example" {
   image_tag = "v0.18.0"
   replicas  = 2
   debug     = false
+}
+```
 
-  # Optional: Git tracking information
-  branch         = "main"
-  commit_sha     = "abc123def456"
-  commit_message = "Deploy via Terraform"
+### Deploy a Revision of the Connected Repository
+
+For an app connected to a GitHub repository, `branch` and `commit_sha` choose the revision to deploy. They are not labels: an app with no connected repository refuses them.
+
+```hcl
+resource "spiceai_deployment" "release" {
+  app_id = spiceai_app.example.id
+
+  # Deploy spicepod.yaml from this commit on the release branch
+  branch     = "release/v1.0"
+  commit_sha = var.release_commit_sha # the full 40-character commit SHA
 }
 ```
 
@@ -101,30 +116,18 @@ resource "spiceai_deployment" "custom" {
   debug     = false
 }
 
-# Deployment with git tracking information
-resource "spiceai_deployment" "with_git_info" {
-  app_id = spiceai_app.example.id
-
-  # Git information for tracking and rollback
-  branch         = "main"
-  commit_sha     = "abc123def456789"
-  commit_message = "Deploy new feature via Terraform"
-
-  # Runtime overrides
-  image_tag = "latest"
-  replicas  = 2
-}
-
-# Production deployment with all options
-resource "spiceai_deployment" "production" {
+# Deployment of a revision of the connected GitHub repository.
+# branch and commit_sha choose what to deploy. An app with no
+# connected repository refuses them.
+resource "spiceai_deployment" "release" {
   app_id = spiceai_app.production.id
 
-  image_tag      = "v0.18.0"
-  replicas       = 5
-  debug          = false
-  branch         = "release/v1.0"
-  commit_sha     = "abc123def456789"
-  commit_message = "Production release v1.0"
+  branch     = "release/v1.0"
+  commit_sha = var.release_commit_sha # the full 40-character commit SHA
+
+  # Runtime overrides
+  image_tag = "v0.18.0"
+  replicas  = 5
 }
 ```
 
@@ -137,9 +140,9 @@ resource "spiceai_deployment" "production" {
 
 ### Optional
 
-- `branch` (String) Git branch name associated with this deployment. Changing this forces a new deployment to be created.
-- `commit_message` (String) Git commit message associated with this deployment. Changing this forces a new deployment to be created.
-- `commit_sha` (String) Git commit SHA associated with this deployment. Changing this forces a new deployment to be created.
+- `branch` (String) For an app connected to a GitHub repository, the branch or tag to deploy `spicepod.yaml` from, in place of the app's production branch. The branch or tag must exist. With `commit_sha`, it must contain that commit. The production branch and the stored spicepod do not change, so a later deployment without a revision deploys the head of the production branch again. An app with no connected repository refuses this attribute with HTTP 400 (`repository_not_connected`). An app whose org has no GitHub App installation refuses it with HTTP 422 (`github_installation_missing`). Changing this forces a new deployment to be created.
+- `commit_message` (String) Not used by the Spice.ai API. A deployment from a connected repository records the message of the commit it reads. Changing this forces a new deployment to be created.
+- `commit_sha` (String) For an app connected to a GitHub repository, the commit to deploy `spicepod.yaml` from, in place of the head of the production branch. The commit must be on `branch`, or on the production branch when `branch` is not set. The deployment records the full 40-character SHA. An app with no connected repository refuses this attribute with HTTP 400 (`repository_not_connected`). An app whose org has no GitHub App installation refuses it with HTTP 422 (`github_installation_missing`). Changing this forces a new deployment to be created.
 - `debug` (Boolean) Enable debug mode for this deployment. Changing this forces a new deployment to be created.
 - `image_tag` (String) Override the Spice.ai runtime image tag for this deployment. If not specified, uses the app's configured image tag. Changing this forces a new deployment to be created.
 - `replicas` (Number) Override the number of replicas for this deployment. Must be between 0 and 10. If not specified, uses the app's configured replicas. Changing this forces a new deployment to be created.

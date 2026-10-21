@@ -56,10 +56,11 @@ resource "spiceai_deployment" "example" {
   # replicas  = 2
   # debug     = false
 
-  # Optional: Git information for tracking
-  # branch         = "main"
-  # commit_sha     = "abc123"
-  # commit_message = "Deploy via Terraform"
+  # Optional: for an app connected to a GitHub repository, deploy this
+  # branch or commit in place of the production branch head.
+  # An app with no connected repository refuses these.
+  # branch     = "release/v1.0"
+  # commit_sha = "<full 40-character commit SHA>"
 }
 
 # Create secrets for the app
