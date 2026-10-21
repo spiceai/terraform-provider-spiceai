@@ -81,11 +81,20 @@ resource "spiceai_deployment" "example" {
   image_tag = "v0.18.0"
   replicas  = 2
   debug     = false
+}
+` + "```" + `
 
-  # Optional: Git tracking information
-  branch         = "main"
-  commit_sha     = "abc123def456"
-  commit_message = "Deploy via Terraform"
+### Deploy a Revision of the Connected Repository
+
+For an app connected to a GitHub repository, ` + "`branch`" + ` and ` + "`commit_sha`" + ` choose the revision to deploy. They are not labels: an app with no connected repository refuses them.
+
+` + "```hcl" + `
+resource "spiceai_deployment" "release" {
+  app_id = spiceai_app.example.id
+
+  # Deploy spicepod.yaml from this commit on the release branch
+  branch     = "release/v1.0"
+  commit_sha = var.release_commit_sha # the full 40-character commit SHA
 }
 ` + "```" + `
 
@@ -150,14 +159,14 @@ resource "spiceai_deployment" "example" {
 				},
 			},
 			"branch": schema.StringAttribute{
-				MarkdownDescription: "Git branch name associated with this deployment. Changing this forces a new deployment to be created.",
+				MarkdownDescription: "For an app connected to a GitHub repository, the branch or tag to deploy `spicepod.yaml` from, in place of the app's production branch. The branch or tag must exist. With `commit_sha`, it must contain that commit. The production branch and the stored spicepod do not change, so a later deployment without a revision deploys the head of the production branch again. An app with no connected repository refuses this attribute with HTTP 400 (`repository_not_connected`). An app whose org has no GitHub App installation refuses it with HTTP 422 (`github_installation_missing`). Changing this forces a new deployment to be created.",
 				Optional:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
 			"commit_sha": schema.StringAttribute{
-				MarkdownDescription: "Git commit SHA associated with this deployment. Changing this forces a new deployment to be created.",
+				MarkdownDescription: "For an app connected to a GitHub repository, the commit to deploy `spicepod.yaml` from, in place of the head of the production branch. The commit must be on `branch`, or on the production branch when `branch` is not set. The deployment records the full 40-character SHA. An app with no connected repository refuses this attribute with HTTP 400 (`repository_not_connected`). An app whose org has no GitHub App installation refuses it with HTTP 422 (`github_installation_missing`). Changing this forces a new deployment to be created.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
@@ -166,7 +175,7 @@ resource "spiceai_deployment" "example" {
 				},
 			},
 			"commit_message": schema.StringAttribute{
-				MarkdownDescription: "Git commit message associated with this deployment. Changing this forces a new deployment to be created.",
+				MarkdownDescription: "Not used by the Spice.ai API. A deployment from a connected repository records the message of the commit it reads. Changing this forces a new deployment to be created.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
